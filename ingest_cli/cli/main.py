@@ -155,7 +155,7 @@ def run(
     and send them to the HxAI Ingestion API.
     """
     config_path = ctx.obj.get("config")
-    verbose = ctx.obj.get("verbose", False)
+    _verbose = ctx.obj.get("verbose", False)  # Will be used when pipeline is implemented
 
     if not config_path:
         click.echo("Error: No configuration file specified.", err=True)
