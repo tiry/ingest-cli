@@ -1,0 +1,1877 @@
+openapi: 3.1.1
+info:
+  title: HxAI Ingestion REST API
+  version: ${NEXT_RELEASE_VERSION}
+  description: REST API used to synchronize content (files + metadata) with data lake
+servers:
+  - url: ${INSIGHT_INGESTION_ROOT_EXPERIENCE}
+    description: ${ENVIRONMENT} environment
+components:
+  parameters:
+    contentTypeHeader:
+      name: content-type
+      description: content-type header
+      in: header
+      required: true
+      examples:
+        content_type:
+          value: application/json
+      schema:
+        type: string
+    authHeader:
+      name: authorization
+      description: Hyland Experience IAM IdP Bearer token
+      in: header
+      required: true
+      examples:
+        token:
+          value: Bearer <jwt>
+      schema:
+        type: string
+    environmentHeader:
+      name: hxp-environment
+      description: Key of the Hyland Experience Environment
+      in: header
+      required: true
+      examples:
+        test_environment:
+          value: hxai-84fe439b-e9a0-44d0-84da-07235736707e
+      schema:
+        type: string
+    userAgentHeader:
+      name: user-agent
+      description: >
+        Identifies the connector and environment. Typically in the format:
+
+        `connector_name/version integrating_system/version (OS info)
+        http_library/version`.
+
+
+        **No official list** of possible values is enforced. This is primarily
+        used for 
+
+        debugging and analytics.
+      in: header
+      required: true
+      examples:
+        acs_user_agent:
+          value: ACS HXI Connector/1.0.42 ACS/24.1.0 (Linux x86_64) Camel/1.0.0
+        postman_user_agent:
+          description: User agent which is added by Postman automatically
+          value: PostmanRuntime/7.26.8
+      schema:
+        type: string
+    count:
+      name: count
+      description: >
+        Requested number of pre-signed URLs. Must be between 1 and 100.
+
+
+        For larger ingestion jobs, call this endpoint multiple times in batches
+        of 100 or fewer.
+      in: query
+      required: false
+      examples:
+        count:
+          value: 10
+      schema:
+        type: integer
+        format: int64
+        minimum: 1
+        maximum: 100
+    sourceId:
+      name: sourceId
+      description: The content source id.
+      in: path
+      required: true
+      examples:
+        sourceId:
+          value: a52878a6-b459-4a13-bdd9-7d086f591d58
+      schema:
+        type: string
+        format: uuid
+        pattern: >-
+          ^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$
+    objectId:
+      name: objectId
+      description: The content id in the source repository.
+      in: path
+      required: true
+      examples:
+        objectId:
+          value: d6c30c7e-a3a3-4fd0-afb6-16cc26f5de02
+      schema:
+        $ref: "#/components/schemas/ObjectId"
+    digest:
+      name: digest
+      description: >-
+        The file digest in the source repository. **Make sure to URL-encode the
+        value.**
+      in: query
+      required: true
+      allowReserved: true
+      examples:
+        digest:
+          value: dd594f89e8f8adf17ef1fb7ceb79e784691a2e09968189f11c0afdf91d4e1f76
+      schema:
+        $ref: "#/components/schemas/Digest"
+    useContentLake:
+      name: useContentLake
+      description: Whether the operation should be performed with new Content Lake.
+      in: query
+      required: false
+      examples:
+        useContentLake:
+          value: true
+      schema:
+        type: boolean
+        default: false
+  schemas:
+    PropertyFullEvent:
+      type: object
+      required:
+        - properties
+      properties:
+        properties:
+          description: Full content update (metadata update and files uploaded)
+          type: object
+          patternProperties:
+            ^.+$:
+              oneOf:
+                - $ref: "#/components/schemas/FileMetadataWithOptionalUpload"
+                - $ref: "#/components/schemas/Value"
+          additionalProperties: false
+    PropertyFullEventV2:
+      type: object
+      required:
+        - properties
+      properties:
+        properties:
+          description: Full content update (metadata update and files uploaded)
+          type: object
+          x-required-annotations:
+            - name
+            - type
+            - dateCreated
+            - createdBy
+            - dateModified
+            - modifiedBy
+          x-single-cardinality-annotations:
+            - name
+            - type
+            - dateCreated
+            - createdBy
+            - dateModified
+            - modifiedBy
+            - aspects
+            - isFolder
+            - orgUnit
+            - isOrgUnitRoot
+            - principals
+          patternProperties:
+            ^.+$:
+              oneOf:
+                - $ref: "#/components/schemas/FileMetadataWithOptionalUpload"
+                - $ref: "#/components/schemas/ValueV2"
+          additionalProperties: false
+    PropertyMetadataOnly:
+      type: object
+      required:
+        - properties
+      properties:
+        properties:
+          description: >-
+            Updated metadata (requires all metadata - document and files
+            metadata)
+          type: object
+          patternProperties:
+            ^.+$:
+              oneOf:
+                - $ref: "#/components/schemas/FileMetadata"
+                - $ref: "#/components/schemas/Value"
+          additionalProperties: false
+    PropertyMetadataOnlyV2:
+      type: object
+      required:
+        - properties
+      properties:
+        properties:
+          description: >-
+            Updated metadata (requires all metadata - document and files
+            metadata)
+          type: object
+          x-required-annotations:
+            - name
+            - type
+            - dateCreated
+            - createdBy
+            - dateModified
+            - modifiedBy
+          x-single-cardinality-annotations:
+            - name
+            - type
+            - dateCreated
+            - createdBy
+            - dateModified
+            - modifiedBy
+            - aspects
+            - isFolder
+            - orgUnit
+            - isOrgUnitRoot
+            - principals
+          patternProperties:
+            ^.+$:
+              oneOf:
+                - $ref: "#/components/schemas/FileMetadata"
+                - $ref: "#/components/schemas/ValueV2"
+          additionalProperties: false
+    PropertyFileUpload:
+      type: object
+      required:
+        - properties
+      properties:
+        properties:
+          description: Uploaded files references (temporary storage IDs and content-types)
+          type: object
+          patternProperties:
+            ^.+$:
+              oneOf:
+                - $ref: "#/components/schemas/FileUpload"
+          additionalProperties: false
+    PresignedUrlsResponse:
+      type: array
+      items:
+        type: object
+        properties:
+          url:
+            type: string
+            example: https://s3.amazonaws.com/bucket-name/bucket-folder/file-name?...
+            description: The pre-signed URL to upload a file to the data lake
+          id:
+            type: string
+            example: e381e783-1e30-4793-b250-3eda634b7c2c
+            description: The name of the file in the data lake (random UUID)
+    ContentEvents:
+      title: Content events notifications
+      description: >-
+        A collection of content events that happened in the source repository
+        and have to be synchronized with the data lake
+      type: array
+      minItems: 1
+      maxItems: 100
+      items:
+        anyOf:
+          - $ref: "#/components/schemas/CreateContentEvent"
+          - $ref: "#/components/schemas/UpdateContentEvent"
+          - $ref: "#/components/schemas/DeleteContentEvent"
+          - $ref: "#/components/schemas/CreateOrUpdateContentEvent"
+    ContentEventsV2:
+      title: Content events notifications
+      description: >-
+        A collection of content events that happened in the source repository
+        and have to be synchronized with the data lake
+      type: array
+      minItems: 1
+      maxItems: 100
+      items:
+        anyOf:
+          - $ref: "#/components/schemas/CreateOrUpdateContentEventV2"
+          - $ref: "#/components/schemas/DeleteContentEvent"
+    ContentEventBase:
+      title: Content event base
+      description: Base properties describing a content event.
+      type: object
+      required:
+        - objectId
+        - sourceId
+        - sourceTimestamp
+      properties:
+        objectId:
+          description: Unique ID of the content in the source repository.
+          $ref: "#/components/schemas/ObjectId"
+        sourceId:
+          description: Unique ID of the source repository.
+          type: string
+          format: uuid
+          pattern: >-
+            ^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$
+        sourceTimestamp:
+          description: >-
+            Unix Epoch timestamp in milliseconds of when the event happened in
+            the source system.
+          type: integer
+    CreateContentEvent:
+      title: Create content event
+      description: >-
+        **Deprecated: create event will be removed after createOrUpdate event is
+        fully implemented.** A content event describing a content was created in
+        the source repository.
+      deprecated: true
+      allOf:
+        - $ref: "#/components/schemas/ContentEventBase"
+        - type: object
+          required:
+            - eventType
+            - properties
+          properties:
+            eventType:
+              description: The type of the content event.
+              type: string
+              enum:
+                - create
+            properties:
+              description: All metadata properties of this content, including files
+              type: object
+              patternProperties:
+                ^.+$:
+                  oneOf:
+                    - $ref: "#/components/schemas/File"
+                    - $ref: "#/components/schemas/Value"
+              additionalProperties: false
+    UpdateContentEvent:
+      title: Update content event
+      description: >-
+        **Deprecated: update event will be removed after createOrUpdate event is
+        fully implemented.** A content event describing a content was updated in
+        the source repository.
+      deprecated: true
+      allOf:
+        - $ref: "#/components/schemas/ContentEventBase"
+        - type: object
+          required:
+            - eventType
+          properties:
+            eventType:
+              description: The type of the content event.
+              type: string
+              enum:
+                - update
+        - anyOf:
+            - type: object
+              required:
+                - properties
+              properties:
+                properties:
+                  description: All metadata properties of this content, including files
+                  type: object
+                  patternProperties:
+                    ^.+$:
+                      oneOf:
+                        - $ref: "#/components/schemas/File"
+                        - $ref: "#/components/schemas/Value"
+                  additionalProperties: false
+    DeleteContentEvent:
+      title: Delete content event
+      description: >-
+        A content event describing a content was deleted in the source
+        repository.
+      allOf:
+        - $ref: "#/components/schemas/ContentEventBase"
+        - type: object
+          required:
+            - eventType
+          properties:
+            eventType:
+              description: The type of the content event.
+              type: string
+              enum:
+                - delete
+    CreateOrUpdateContentEvent:
+      title: Create or Update content event
+      description: >-
+        A content event describing a content changed somehow (it could have been
+        created or updated) in the source repository.
+      allOf:
+        - $ref: "#/components/schemas/ContentEventBase"
+        - type: object
+          required:
+            - eventType
+          properties:
+            eventType:
+              description: The type of the content event.
+              type: string
+              enum:
+                - createOrUpdate
+        - anyOf:
+            - $ref: "#/components/schemas/PropertyFullEvent"
+            - $ref: "#/components/schemas/PropertyMetadataOnly"
+            - $ref: "#/components/schemas/PropertyFileUpload"
+    CreateOrUpdateContentEventV2:
+      title: Create or Update content event
+      description: >-
+        A content event describing a content changed somehow (it could have been
+        created or updated) in the source repository.
+      allOf:
+        - $ref: "#/components/schemas/ContentEventBase"
+        - type: object
+          required:
+            - eventType
+          properties:
+            eventType:
+              description: The type of the content event.
+              type: string
+              enum:
+                - createOrUpdate
+        - anyOf:
+            - $ref: "#/components/schemas/PropertyFullEventV2"
+            - $ref: "#/components/schemas/PropertyMetadataOnlyV2"
+            - $ref: "#/components/schemas/PropertyFileUpload"
+    File:
+      oneOf:
+        - $ref: "#/components/schemas/FileMetadata"
+        - $ref: "#/components/schemas/FileUpload"
+        - $ref: "#/components/schemas/FileMetadataWithUpload"
+    FileUpload:
+      type: object
+      required:
+        - file
+      additionalProperties: false
+      properties:
+        file:
+          type: object
+          required:
+            - id
+            - content-type
+          additionalProperties: false
+          properties:
+            id:
+              type: string
+              minLength: 1
+            content-type:
+              $ref: "#/components/schemas/ContentType"
+    FileMetadata:
+      type: object
+      required:
+        - file
+      additionalProperties: false
+      properties:
+        file:
+          required:
+            - content-metadata
+          additionalProperties: false
+          properties:
+            content-metadata:
+              type: object
+              required:
+                - size
+                - name
+                - content-type
+              properties:
+                size:
+                  type: integer
+                  minimum: 0
+                name:
+                  type: string
+                  minLength: 1
+                content-type:
+                  $ref: "#/components/schemas/ContentType"
+                digest:
+                  $ref: "#/components/schemas/Digest"
+    FileMetadataWithUpload:
+      type: object
+      required:
+        - file
+      additionalProperties: false
+      properties:
+        file:
+          required:
+            - content-metadata
+            - id
+            - content-type
+          additionalProperties: false
+          properties:
+            content-metadata:
+              type: object
+              required:
+                - size
+                - name
+                - content-type
+              properties:
+                size:
+                  type: integer
+                  minimum: 0
+                name:
+                  type: string
+                  minLength: 1
+                content-type:
+                  $ref: "#/components/schemas/ContentType"
+                digest:
+                  $ref: "#/components/schemas/Digest"
+            id:
+              type: string
+              minLength: 1
+            content-type:
+              $ref: "#/components/schemas/ContentType"
+    FileMetadataWithOptionalUpload:
+      type: object
+      required:
+        - file
+      additionalProperties: false
+      properties:
+        file:
+          required:
+            - content-metadata
+          additionalProperties: false
+          properties:
+            content-metadata:
+              type: object
+              required:
+                - size
+                - name
+                - content-type
+              properties:
+                size:
+                  type: integer
+                  minimum: 0
+                name:
+                  type: string
+                  minLength: 1
+                content-type:
+                  $ref: "#/components/schemas/ContentType"
+                digest:
+                  $ref: "#/components/schemas/Digest"
+            id:
+              type: string
+              minLength: 1
+            content-type:
+              $ref: "#/components/schemas/ContentType"
+    Digest:
+      type: string
+      pattern: ^[a-zA-Z0-9=+/]+$
+    DateTime:
+      type: string
+      pattern: ^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,3})?Z$
+    ContentType:
+      type: string
+      pattern: ^[a-zA-Z-]+/[a-zA-Z0-9.+_-]+$
+    Value:
+      oneOf:
+        - $ref: "#/components/schemas/AnnotationName"
+        - $ref: "#/components/schemas/AnnotationType"
+        - $ref: "#/components/schemas/AnnotationDateCreated"
+        - $ref: "#/components/schemas/AnnotationCreatedBy"
+        - $ref: "#/components/schemas/AnnotationDateModified"
+        - $ref: "#/components/schemas/AnnotationModifiedBy"
+        - $ref: "#/components/schemas/AnnotationAspects"
+        - $ref: "#/components/schemas/AnnotationOrgUnit"
+        - $ref: "#/components/schemas/AnnotationReference"
+        - $ref: "#/components/schemas/AnnotationVocabulary"
+        - $ref: "#/components/schemas/AnnotationIsFolder"
+        - $ref: "#/components/schemas/AnnotationIsOrgUnitRoot"
+        - $ref: "#/components/schemas/AnnotationPrincipals"
+        - $ref: "#/components/schemas/AnnotationHierarchy"
+        - $ref: "#/components/schemas/ValueFloat"
+        - $ref: "#/components/schemas/ValueInteger"
+        - $ref: "#/components/schemas/ValueMultiValue"
+        - $ref: "#/components/schemas/ValueString"
+        - $ref: "#/components/schemas/ValueBoolean"
+        - $ref: "#/components/schemas/ValueObject"
+        - $ref: "#/components/schemas/ValueCurrency"
+        - $ref: "#/components/schemas/ValueDate"
+        - $ref: "#/components/schemas/ValueDatetime"
+    ValueV2:
+      oneOf:
+        - $ref: "#/components/schemas/AnnotationName"
+        - $ref: "#/components/schemas/AnnotationType"
+        - $ref: "#/components/schemas/AnnotationDateCreated"
+        - $ref: "#/components/schemas/AnnotationCreatedBy"
+        - $ref: "#/components/schemas/AnnotationDateModified"
+        - $ref: "#/components/schemas/AnnotationModifiedBy"
+        - $ref: "#/components/schemas/AnnotationAspects"
+        - $ref: "#/components/schemas/AnnotationOrgUnit"
+        - $ref: "#/components/schemas/AnnotationReference"
+        - $ref: "#/components/schemas/AnnotationVocabulary"
+        - $ref: "#/components/schemas/AnnotationIsFolder"
+        - $ref: "#/components/schemas/AnnotationIsOrgUnitRoot"
+        - $ref: "#/components/schemas/AnnotationPrincipals"
+        - $ref: "#/components/schemas/AnnotationHierarchy"
+        - $ref: "#/components/schemas/ValueFloat"
+        - $ref: "#/components/schemas/ValueInteger"
+        - $ref: "#/components/schemas/ValueString"
+        - $ref: "#/components/schemas/ValueBoolean"
+        - $ref: "#/components/schemas/ValueObject"
+        - $ref: "#/components/schemas/ValueCurrency"
+        - $ref: "#/components/schemas/ValueDate"
+        - $ref: "#/components/schemas/ValueDatetime"
+    DataTypeFloat:
+      type: number
+      format: double
+      minimum: -1.7976931348623157e+308
+      maximum: 1.7976931348623157e+308
+    ValueFloat:
+      type: object
+      required:
+        - type
+        - value
+      additionalProperties: false
+      properties:
+        type:
+          type: string
+          enum:
+            - float
+        value:
+          oneOf:
+            - $ref: "#/components/schemas/DataTypeFloat"
+            - type: array
+              minItems: 1
+              items:
+                $ref: "#/components/schemas/DataTypeFloat"
+    DataTypeInteger:
+      type: integer
+      format: int64
+      minimum: -9007199254740991
+      maximum: 9007199254740991
+    ValueInteger:
+      type: object
+      required:
+        - type
+        - value
+      additionalProperties: false
+      properties:
+        type:
+          type: string
+          enum:
+            - integer
+        value:
+          oneOf:
+            - $ref: "#/components/schemas/DataTypeInteger"
+            - type: array
+              minItems: 1
+              items:
+                $ref: "#/components/schemas/DataTypeInteger"
+    ValueMultiValue:
+      type: object
+      required:
+        - value
+      additionalProperties: false
+      properties:
+        value:
+          oneOf:
+            - type: string
+              minLength: 0
+            - type: number
+            - type: boolean
+            - type: object
+              minProperties: 0
+            - type: "null"
+            - type: array
+              minItems: 0
+              items:
+                anyOf:
+                  - type: string
+                    minLength: 0
+                  - type: number
+                  - type: boolean
+                  - type: object
+                    minProperties: 0
+                  - type: "null"
+    ValueString:
+      type: object
+      required:
+        - type
+        - value
+      additionalProperties: false
+      properties:
+        type:
+          type: string
+          enum:
+            - string
+        value:
+          oneOf:
+            - type: string
+            - type: array
+              minItems: 1
+              items:
+                type: string
+    ValueBoolean:
+      type: object
+      required:
+        - type
+        - value
+      additionalProperties: false
+      properties:
+        type:
+          type: string
+          enum:
+            - boolean
+        value:
+          oneOf:
+            - type: boolean
+            - type: array
+              minItems: 1
+              items:
+                type: boolean
+    ValueObject:
+      type: object
+      required:
+        - type
+        - value
+      additionalProperties: false
+      properties:
+        type:
+          type: string
+          enum:
+            - object
+        value:
+          oneOf:
+            - type: object
+              additionalProperties: true
+            - type: array
+              minItems: 1
+              items:
+                type: object
+                additionalProperties: true
+    ValueDate:
+      type: object
+      required:
+        - type
+        - value
+      additionalProperties: false
+      properties:
+        type:
+          type: string
+          enum:
+            - date
+        value:
+          oneOf:
+            - type: string
+              pattern: ^\d{4}-\d{2}-\d{2}$
+            - type: array
+              minItems: 1
+              items:
+                type: string
+                pattern: ^\d{4}-\d{2}-\d{2}$
+    ValueDatetime:
+      type: object
+      required:
+        - type
+        - value
+      additionalProperties: false
+      properties:
+        type:
+          type: string
+          enum:
+            - datetime
+        value:
+          oneOf:
+            - $ref: "#/components/schemas/DateTime"
+            - type: array
+              minItems: 1
+              items:
+                $ref: "#/components/schemas/DateTime"
+    CheckDigestResponse:
+      type: object
+      properties:
+        exists:
+          type: boolean
+          examples:
+            - value: true
+              summary: Digest exists in the object
+            - value: false
+              summary: Digest does not exist in the object
+          description: Indicates whether the provided digest exists in the specified object
+      required:
+        - exists
+    DataTypeCurrency:
+      type: string
+      pattern: ^(-)?\d+(\.\d+)?[A-Z]{3}$
+    ValueCurrency:
+      type: object
+      required:
+        - type
+        - value
+      additionalProperties: false
+      properties:
+        type:
+          type: string
+          enum:
+            - currency
+        value:
+          oneOf:
+            - $ref: "#/components/schemas/DataTypeCurrency"
+            - type: array
+              minItems: 1
+              items:
+                $ref: "#/components/schemas/DataTypeCurrency"
+    AnnotationName:
+      type: object
+      required:
+        - annotation
+        - value
+      additionalProperties: false
+      properties:
+        annotation:
+          type: string
+          enum:
+            - name
+        type:
+          type: string
+          enum:
+            - string
+        value:
+          type: string
+      description: >
+        Name of the Document or content. Property with annotation "name" is
+        required for all events and it must be used only once per event.
+    AnnotationType:
+      type: object
+      required:
+        - annotation
+        - value
+      additionalProperties: false
+      properties:
+        annotation:
+          type: string
+          enum:
+            - type
+        type:
+          type: string
+          enum:
+            - string
+        value:
+          type: string
+      description: >
+        Primary type to which the content belongs.  Property with annotation
+        "type" is required for all events and it must be used only once per
+        event.
+    AnnotationDateCreated:
+      type: object
+      required:
+        - annotation
+        - value
+      additionalProperties: false
+      properties:
+        annotation:
+          type: string
+          enum:
+            - dateCreated
+        type:
+          type: string
+          enum:
+            - datetime
+        value:
+          $ref: "#/components/schemas/DateTime"
+      description: >
+        Document creation date. Property with annotation "dateCreated" is
+        required for all events and it must be used only once per event.
+    AnnotationCreatedBy:
+      type: object
+      required:
+        - annotation
+        - value
+      additionalProperties: false
+      properties:
+        annotation:
+          type: string
+          enum:
+            - createdBy
+        type:
+          type: string
+          enum:
+            - string
+        value:
+          type: string
+      description: >
+        User that created this content.  The value should be the user ID from
+        the source system. Property with annotation "createdBy" is required for
+        all events and it must be used only once per event.
+    AnnotationDateModified:
+      type: object
+      required:
+        - annotation
+        - value
+      additionalProperties: false
+      properties:
+        annotation:
+          type: string
+          enum:
+            - dateModified
+        type:
+          type: string
+          enum:
+            - datetime
+        value:
+          $ref: "#/components/schemas/DateTime"
+      description: >
+        The date of the last document/content update. Property with annotation
+        "dateModified" is required for all events and it must be used only once
+        per event.
+    AnnotationModifiedBy:
+      type: object
+      required:
+        - annotation
+        - value
+      additionalProperties: false
+      properties:
+        annotation:
+          type: string
+          enum:
+            - modifiedBy
+        type:
+          type: string
+          enum:
+            - string
+        value:
+          oneOf:
+            - type: string
+            - type: array
+              minItems: 1
+              items:
+                type: string
+      description: >
+        User that last modified this content. Property with annotation
+        "modifiedBy" is required for all events and it must be used only once
+        per event.
+    AnnotationAspects:
+      type: object
+      required:
+        - annotation
+        - value
+      additionalProperties: false
+      properties:
+        annotation:
+          type: string
+          enum:
+            - aspects
+        type:
+          type: string
+          enum:
+            - string
+        value:
+          type: array
+          minItems: 1
+          items:
+            type: string
+      description: >
+        List of aspects for this object. Term used by ACS, equivalent to facets
+        in Nuxeo.  Examples: folderish, versionable. Property with annotation
+        "aspects" can be used no more than once per event.
+    AnnotationIsFolder:
+      type: object
+      required:
+        - annotation
+        - value
+      additionalProperties: false
+      properties:
+        annotation:
+          type: string
+          enum:
+            - isFolder
+        type:
+          type: string
+          enum:
+            - boolean
+        value:
+          type: boolean
+      description: >
+        Indicates if the object is considered a folder.  Intended for future
+        support of folder-based filtering. Property with annotation "isFolder"
+        can be used no more than once per event.
+    AnnotationIsOrgUnitRoot:
+      type: object
+      required:
+        - annotation
+        - value
+      additionalProperties: false
+      properties:
+        annotation:
+          type: string
+          enum:
+            - isOrgUnitRoot
+        type:
+          type: string
+          enum:
+            - boolean
+        value:
+          type: boolean
+      description: >
+        Indicates if the object is the root of an Organizational Unit.  Supports
+        future path browsing in the UI.  Top-level filter: isOrgUnitRoot=true;
+        expansion uses primaryParent=<node>. Property with annotation
+        "isOrgUnitRoot" can be used no more than once per event.
+    AnnotationReference:
+      type: object
+      required:
+        - annotation
+        - value
+      additionalProperties: false
+      properties:
+        annotation:
+          type: string
+          enum:
+            - reference
+        type:
+          type: string
+          enum:
+            - string
+        value:
+          oneOf:
+            - type: string
+            - type: array
+              minItems: 1
+              items:
+                type: string
+      description: >
+        Used when the value is the ID (or array of IDs) of another document
+        within the same sourceId.  Referencing unsent objects is allowed, as
+        Ingestion processes data asynchronously.
+    AnnotationVocabulary:
+      type: object
+      required:
+        - annotation
+        - value
+      additionalProperties: false
+      properties:
+        annotation:
+          type: string
+          enum:
+            - vocabulary
+        type:
+          type: string
+          enum:
+            - string
+        value:
+          oneOf:
+            - type: string
+            - type: array
+              minItems: 1
+              items:
+                type: string
+      description: >
+        Specialized reference to a vocabulary value sent as a separate
+        document.  Field must contain the objectId of that document and use the
+        vocabulary annotation.  Localized values are not supported.
+    AnnotationOrgUnit:
+      type: object
+      required:
+        - annotation
+        - value
+      additionalProperties: false
+      properties:
+        annotation:
+          type: string
+          enum:
+            - orgUnit
+        type:
+          type: string
+          enum:
+            - string
+        value:
+          type: string
+      description: >
+        Name of the Organizational Unit (OU) this object belongs to.  Used to
+        denote a sub-division of content for filtering.  Examples: Drawer
+        (Perceptive), Site (ACS), Document Type Group (OnBase). Property with
+        annotation "orgUnit" can be used no more than once per event.
+    AnnotationPrincipals:
+      type: object
+      required:
+        - annotation
+        - value
+      additionalProperties: false
+      properties:
+        annotation:
+          type: string
+          enum:
+            - principals
+        type:
+          type: string
+          enum:
+            - object
+        value:
+          type: object
+          required:
+            - read
+            - deny
+          additionalProperties: false
+          properties:
+            read:
+              type: array
+              items:
+                $ref: "#/components/schemas/AnnotationPrincipalsValueObject"
+            deny:
+              type: array
+              items:
+                $ref: "#/components/schemas/AnnotationPrincipalsValueObject"
+            principalsType:
+              type: string
+              enum:
+                - applied
+                - effective
+      description: >
+        An object containing two arrays: one for users and groups that can read
+        this document and one for users and groups that are explicitly denied
+        access to this document. Optionally it can contain a `principalsType`
+        field that indicates whether the ACLs are applied or effective. If the
+        field is not present, it defaults to `applied`. This annotation can be
+        used at most once per document.
+    AnnotationPrincipalsValueObject:
+      oneOf:
+        - type: object
+          required:
+            - type
+            - id
+          additionalProperties: false
+          properties:
+            id:
+              type: string
+            type:
+              type: string
+              enum:
+                - USER
+                - GROUP
+            internal:
+              type: boolean
+              default: false
+              description: Indicates whether the principal is internal
+        - type: object
+          required:
+            - type
+          additionalProperties: false
+          properties:
+            id:
+              type: string
+            type:
+              type: string
+              enum:
+                - ANY
+    AnnotationHierarchy:
+      type: object
+      required:
+        - annotation
+        - value
+      additionalProperties: false
+      properties:
+        annotation:
+          type: string
+          enum:
+            - hierarchy
+        type:
+          type: string
+          enum:
+            - object
+        value:
+          type: object
+          additionalProperties: false
+          properties:
+            primaryParentId:
+              $ref: "#/components/schemas/ObjectId"
+            primaryAncestorIds:
+              type: array
+              uniqueItems: true
+              items:
+                $ref: "#/components/schemas/ObjectId"
+            allParentIds:
+              type: array
+              uniqueItems: true
+              items:
+                $ref: "#/components/schemas/ObjectId"
+            allAncestorIds:
+              type: array
+              uniqueItems: true
+              items:
+                $ref: "#/components/schemas/ObjectId"
+      description: >
+        An object containing any subset of the following properties:
+
+        - primaryParentId - the id of the node's primary parent
+
+        - primaryAncestorIds - the path from the root (first element) to the
+        node's primary parent (last element), including the primary parent
+        (ordered)
+
+        - allParentIds - the ids of all parents of the node, primary and
+        secondary (unordered)
+
+        - allAncestorIds - all node's ancestors, including the primary ancestors
+        (unordered)
+    ObjectId:
+      type: string
+      minLength: 1
+      maxLength: 128
+      pattern: ^[A-Za-z0-9._-]+$
+tags:
+  - name: files
+  - name: metadata
+paths:
+  /v1/presigned-urls:
+    parameters:
+      - $ref: "#/components/parameters/authHeader"
+      - $ref: "#/components/parameters/environmentHeader"
+      - $ref: "#/components/parameters/userAgentHeader"
+      - $ref: "#/components/parameters/count"
+    post:
+      tags:
+        - files
+      summary: Request pre-signed URLs to upload files
+      description: >
+        Returns up to 100 pre-signed URLs to upload files to the data lake. 
+
+        If you need to upload large numbers of files (e.g. 10k), call this
+        endpoint 
+
+        multiple times in chunks of up to 100 each. Presigned URLs 
+
+        expire after **2 hours**.
+
+
+        Below is an example flow of how this endpoint is used:
+
+
+        ```
+              [Optional]        +------------------------+
+              +---------------> |   /v1/check-digest     |
+              |                 +------------------------+
+              v
+        +---------------------+    +------------------------+   
+        +--------------------------+
+
+        | Local Repository    |    |   /v1/presigned-urls   |    |   
+        /v1/ingestion-events  |
+
+        | (ACS, OnBase, etc.) | -> |  (1 <= count <= 100)   | -> |  
+        (createOrUpdate, etc.) |
+
+        +---------------------+    +------------------------+   
+        +--------------------------+
+              Upload Files                Return Up to 100              Send metadata
+              to S3 using                 presigned URLs                 references
+              pre-signed URLs
+        ```
+      operationId: presignedUrls
+      x-amazon-apigateway-integration:
+        type: HTTP
+        httpMethod: POST
+        uri: ${INSIGHT_INGESTION_ROOT_NCP}/v1/presigned-urls
+        connectionType: VPC_LINK
+        connectionId: "{vpcLinkId}"
+        requestParameters:
+          integration.request.header.authorization: method.request.header.authorization
+          integration.request.header.hxp-environment: method.request.header.hxp-environment
+          integration.request.header.user-agent: method.request.header.user-agent
+          integration.request.header.x-cin-from-apigw: "'true'"
+          integration.request.querystring.count: method.request.querystring.count
+        responses:
+          "200":
+            statusCode: 200
+          "400":
+            statusCode: 400
+          "401":
+            statusCode: 401
+          "403":
+            statusCode: 403
+          "422":
+            statusCode: 422
+          "500":
+            statusCode: 500
+        passthroughBehavior: when_no_match
+        timeoutInMillis: 29000
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PresignedUrlsResponse"
+        "400":
+          description: Bad Request
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+        "422":
+          description: Unprocessable Content
+        "500":
+          description: Internal Server Error
+  /v1/ingestion-events:
+    parameters:
+      - $ref: "#/components/parameters/authHeader"
+      - $ref: "#/components/parameters/contentTypeHeader"
+      - $ref: "#/components/parameters/environmentHeader"
+      - $ref: "#/components/parameters/userAgentHeader"
+    post:
+      tags:
+        - metadata
+      summary: >-
+        Notify data lake about content events that happened in the source
+        repository
+      description: >
+        **Deprecated: please use /v2/ingestion-events endpoint instead**
+
+
+        After uploading files with presigned URLs, you call this endpoint to
+        associate
+
+        metadata and trigger ingestion. For example, when using
+        `createOrUpdate`, you
+
+        can reference the `id` from a presigned URL to link the binary file.
+
+
+        Below is a simplified flow illustrating how ingestion might fit into the
+        overall process:
+
+
+        ```
+              +---------------------------+     
+              | POST /v1/presigned-urls   |  (Return up to 100 pre-signed URLs)
+              +-----------+---------------+
+                          |
+                          v
+             PUT each file to S3 using
+             the presigned URLs
+                          |
+                          v
+             +------------+--------------+
+             | POST /v1/ingestion-events |
+             |  (createOrUpdate, etc.)   |
+             +------------+--------------+
+                          |
+                          v
+            Request accepted (202), ingestion queued
+            (Data Platform asynchronously processes
+            and stores/updates objects if successful.)
+        ```
+      operationId: ingestionEvents
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ContentEvents"
+            examples:
+              example-create:
+                summary: Create content event
+                value:
+                  - objectId: 00e619f4-d935-43fa-9ac0-0a63de491876
+                    eventType: create
+                    sourceId: 12e60790-fc25-32c4-88f2-176c25e13b3a
+                    sourceTimestamp: 1732022495428
+                    properties:
+                      myFileProperty:
+                        file:
+                          id: ecc22bdc-ac8e-4736-a36a-8b9ecc0c66d4
+                          content-type: image/jpeg
+                          content-metadata:
+                            size: 23100
+                            name: image.bmp
+                            content-type: image/bmp
+                      propertyName1:
+                        value: 1732022495428
+                      anotherPropertyName:
+                        value: The title
+                      property:name:
+                        value: true
+                      propertyName2:
+                        value:
+                          first: property
+                          second: property
+                      propertyName3:
+                        value:
+                          - 1732022495428
+                          - The title
+                          - true
+                          - first: property
+                            second: property
+              example-update:
+                summary: Update content event
+                value:
+                  - objectId: 90e619f4-d935-43fa-9ac0-0a63de491878
+                    eventType: update
+                    sourceId: 12e60790-fc25-32c4-88f2-176c25e13b3a
+                    sourceTimestamp: 1732022495428
+                    properties:
+                      propertyName1:
+                        value:
+                          - bird
+                          - cat
+                      anotherPropertyName:
+                        value: value123
+                      property:name:
+                        value: "2023-10-05T17:31:00Z"
+                      propertyName2:
+                        value:
+                          count: 42
+                      propertyName3:
+                        value:
+                          - name: "The Legend of Zelda: Breath of the Wild"
+                            releaseYear: "2017"
+                          - name: "The Legend of Zelda: Tears of the Kingdom"
+                            releaseYear: "2023"
+                      propertyName4:
+                        value: 1712045011
+                      propertyName5:
+                        value: true
+                      propertyName6:
+                        file:
+                          id: ecc22bdc-ac8e-4736-a36a-8b9ecc0c66d4
+                          content-type: image/jpeg
+                          content-metadata:
+                            size: 23100
+                            name: image.bmp
+                            content-type: image/bmp
+              example-delete:
+                summary: Delete content event
+                value:
+                  - objectId: 90e619f4-d935-43fa-9ac0-0a63de491878
+                    eventType: delete
+                    sourceId: 12e60790-fc25-32c4-88f2-176c25e13b3a
+                    sourceTimestamp: 1732022495428
+              example-create-or-update:
+                summary: Create or Update content event
+                value:
+                  - objectId: 90e619f4-d935-43fa-9ac0-0a63de491878
+                    eventType: createOrUpdate
+                    sourceId: 12e60790-fc25-32c4-88f2-176c25e13b3a
+                    sourceTimestamp: 1732022495428
+                    properties:
+                      propertyName1:
+                        value:
+                          - bird
+                          - cat
+                      anotherPropertyName:
+                        value: value123
+                      property:name:
+                        value: "2023-10-05T17:31:00Z"
+                      propertyName2:
+                        value:
+                          count: 42
+                      propertyName3:
+                        value:
+                          - name: "The Legend of Zelda: Breath of the Wild"
+                            releaseYear: "2017"
+                          - name: "The Legend of Zelda: Tears of the Kingdom"
+                            releaseYear: "2023"
+                      propertyName4:
+                        value: 1712045011
+                      propertyName5:
+                        value: true
+                      propertyName6:
+                        file:
+                          id: ecc22bdc-ac8e-4736-a36a-8b9ecc0c66d4
+                          content-type: image/jpeg
+                          content-metadata:
+                            size: 23100
+                            name: image.bmp
+                            content-type: image/bmp
+                      propertyName7:
+                        type: object
+                        value:
+                          property1: value123
+                          property2: true
+                          property3: 123
+                          property4: 1.23456789
+                      propertyName8:
+                        type: object
+                        value:
+                          - property1: value123
+                            property2: true
+                          - property3: 123
+                            property4: 1.23456789
+                      propertyName9:
+                        type: date
+                        value: "2025-04-01"
+                      propertyName10:
+                        type: date
+                        value:
+                          - "2025-04-01"
+                          - "2026-05-02"
+                      propertyName11:
+                        type: datetime
+                        value: "2025-02-07T14:23:13.742Z"
+                      propertyName12:
+                        type: datetime
+                        value:
+                          - "2025-02-07T14:23:13.742Z"
+                          - "2024-09-17T10:53:06Z"
+                      propertyName13:
+                        type: float
+                        value: 3.14159
+                      propertyName14:
+                        type: float
+                        value:
+                          - 3.14159
+                          - -9.81
+                          - 6.02e+23
+                      propertyName15:
+                        type: integer
+                        value: 42
+                      propertyName16:
+                        type: integer
+                        value:
+                          - 42
+                          - 9999
+                          - -123
+                      propertyName17:
+                        type: boolean
+                        value: false
+                      propertyName18:
+                        type: boolean
+                        value:
+                          - true
+                          - false
+                          - true
+                      propertyName19:
+                        type: currency
+                        value: 12.34USD
+                      propertyName20:
+                        type: currency
+                        value:
+                          - "-12.34USD"
+                          - 0.99USD
+      x-amazon-apigateway-integration:
+        type: HTTP
+        httpMethod: POST
+        uri: ${INSIGHT_INGESTION_ROOT_NCP}/v1/ingestion-events
+        connectionType: VPC_LINK
+        connectionId: "{vpcLinkId}"
+        requestParameters:
+          integration.request.header.authorization: method.request.header.authorization
+          integration.request.header.content-type: method.request.header.content-type
+          integration.request.header.hxp-environment: method.request.header.hxp-environment
+          integration.request.header.user-agent: method.request.header.user-agent
+          integration.request.header.x-cin-from-apigw: "'true'"
+        requestTemplates:
+          application/json: $input.body
+        responses:
+          "202":
+            statusCode: 202
+          "400":
+            statusCode: 400
+          "401":
+            statusCode: 401
+          "403":
+            statusCode: 403
+          "422":
+            statusCode: 422
+          "500":
+            statusCode: 500
+        passthroughBehavior: when_no_match
+        timeoutInMillis: 29000
+      responses:
+        "202":
+          description: Accepted
+        "400":
+          description: Bad Request
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+        "422":
+          description: Unprocessable Content
+        "500":
+          description: Internal Server Error
+  /v2/ingestion-events:
+    parameters:
+      - $ref: "#/components/parameters/authHeader"
+      - $ref: "#/components/parameters/contentTypeHeader"
+      - $ref: "#/components/parameters/environmentHeader"
+      - $ref: "#/components/parameters/userAgentHeader"
+    post:
+      tags:
+        - metadata
+      summary: >-
+        Notify data lake about content events that happened in the source
+        repository
+      description: >
+        After uploading files with presigned URLs, you call this endpoint to
+        associate
+
+        metadata and trigger ingestion. For example, when using
+        `createOrUpdate`, you
+
+        can reference the `id` from a presigned URL to link the binary file.
+
+
+        Below is a simplified flow illustrating how ingestion might fit into the
+        overall process:
+
+
+        ```
+              +---------------------------+     
+              | POST /v1/presigned-urls   |  (Return up to 100 pre-signed URLs)
+              +-----------+---------------+
+                          |
+                          v
+             PUT each file to S3 using
+             the presigned URLs
+                          |
+                          v
+             +------------+--------------+
+             | POST /v2/ingestion-events |
+             |     (createOrUpdate)      |
+             +------------+--------------+
+                          |
+                          v
+            Request accepted (202), ingestion queued
+            (Data Platform asynchronously processes
+            and stores/updates objects if successful.)
+        ```
+
+
+        Additional validation of annotations for each `createOrUpdate` content
+        event:
+
+
+        1. Annotations that should be present for each content event:
+          - name
+          - type
+          - dateCreated
+          - createdBy
+          - dateModified
+          - modifiedBy
+
+        2. Annotations that shouldn't be used more than once per content event:
+          - name
+          - type
+          - dateCreated
+          - createdBy
+          - dateModified
+          - modifiedBy
+          - aspects
+          - isFolder
+          - orgUnit
+          - isOrgUnitRoot
+          - principals
+
+        Please see example for details.
+      operationId: ingestionEventsV2
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ContentEventsV2"
+            examples:
+              example-create-or-update:
+                summary: Create or Update content event
+                value:
+                  - objectId: 90e619f4-d935-43fa-9ac0-0a63de491878
+                    eventType: createOrUpdate
+                    sourceId: 12e60790-fc25-32c4-88f2-176c25e13b3a
+                    sourceTimestamp: 1732022495428
+                    properties:
+                      propertyNameFile:
+                        file:
+                          id: ecc22bdc-ac8e-4736-a36a-8b9ecc0c66d4
+                          content-type: image/jpeg
+                          content-metadata:
+                            size: 23100
+                            name: image.bmp
+                            content-type: image/bmp
+                      propertyNameAnnotationName:
+                        annotation: name
+                        value: Invoice for pizza party
+                      propertyNameAnnotationType:
+                        annotation: type
+                        type: string
+                        value: Legal References
+                      propertyNameAnnotationDateCreated:
+                        annotation: dateCreated
+                        type: datetime
+                        value: "2023-10-05T17:31:00.000Z"
+                      propertyNameAnnotationCreatedBy:
+                        annotation: createdBy
+                        type: string
+                        value: 6c92091d-e1e2-407c-85d3-e5756a6a704d
+                      propertyNameAnnotationDateModified:
+                        annotation: dateModified
+                        value: "2023-10-06T17:31:00.000Z"
+                      propertyNameAnnotationModifiedBy:
+                        annotation: modifiedBy
+                        type: string
+                        value: admin
+                      propertyNameAnnotationIsFolder:
+                        annotation: isFolder
+                        type: boolean
+                        value: true
+                      propertyNameAnnotationPrincipals:
+                        annotation: principals
+                        type: object
+                        value:
+                          read:
+                            - type: GROUP
+                              id: 45f11330-2739-4cd6-8d99-20471a87c78f
+                            - type: USER
+                              id: 6f1ac18d-f8c6-4a28-884a-be2960f67889
+                          deny:
+                            - type: GROUP
+                              id: 95a97970-ccfc-4405-b4b1-271b63eebd4c
+                      propertyNameObject:
+                        type: object
+                        value:
+                          property1: value123
+                          property2: true
+                          property3: 123
+                          property4: 1.23456789
+                      propertyNameObjectArray:
+                        type: object
+                        value:
+                          - property1: value123
+                            property2: true
+                          - property3: 123
+                            property4: 1.23456789
+                      propertyNameDate:
+                        type: date
+                        value: "2025-04-01"
+                      propertyNameDateArray:
+                        type: date
+                        value:
+                          - "2025-04-01"
+                          - "2026-05-02"
+                      propertyNameDatetime:
+                        type: datetime
+                        value: "2025-02-07T14:23:13.742Z"
+                      propertyNameDatetimeArray:
+                        type: datetime
+                        value:
+                          - "2025-02-07T14:23:13.742Z"
+                          - "2024-09-17T10:53:06Z"
+                      propertyNameFloat:
+                        type: float
+                        value: 3.14159
+                      propertyNameFloatArray:
+                        type: float
+                        value:
+                          - 3.14159
+                          - -9.81
+                          - 6.02e+23
+                      propertyNameInteger:
+                        type: integer
+                        value: 42
+                      propertyNameIntegerArray:
+                        type: integer
+                        value:
+                          - 42
+                          - 9999
+                          - -123
+                      propertyNameBoolean:
+                        type: boolean
+                        value: false
+                      propertyNameBooleanArray:
+                        type: boolean
+                        value:
+                          - true
+                          - false
+                          - true
+                      propertyNameCurrency:
+                        type: currency
+                        value: 12.34USD
+                      propertyNameCurrencyArray:
+                        type: currency
+                        value:
+                          - "-12.34USD"
+                          - 0.99USD
+              example-delete:
+                summary: Delete content event
+                value:
+                  - objectId: 90e619f4-d935-43fa-9ac0-0a63de491878
+                    eventType: delete
+                    sourceId: 12e60790-fc25-32c4-88f2-176c25e13b3a
+                    sourceTimestamp: 1732022495428
+      x-amazon-apigateway-integration:
+        type: HTTP
+        httpMethod: POST
+        uri: ${INSIGHT_INGESTION_ROOT_NCP}/v2/ingestion-events
+        connectionType: VPC_LINK
+        connectionId: "{vpcLinkId}"
+        requestParameters:
+          integration.request.header.authorization: method.request.header.authorization
+          integration.request.header.content-type: method.request.header.content-type
+          integration.request.header.hxp-environment: method.request.header.hxp-environment
+          integration.request.header.user-agent: method.request.header.user-agent
+          integration.request.header.x-cin-from-apigw: "'true'"
+        requestTemplates:
+          application/json: $input.body
+        responses:
+          "202":
+            statusCode: 202
+          "400":
+            statusCode: 400
+          "401":
+            statusCode: 401
+          "403":
+            statusCode: 403
+          "422":
+            statusCode: 422
+          "500":
+            statusCode: 500
+        passthroughBehavior: when_no_match
+        timeoutInMillis: 29000
+      responses:
+        "202":
+          description: Accepted
+        "400":
+          description: Bad Request
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+        "422":
+          description: Unprocessable Content
+        "500":
+          description: Internal Server Error
+  /v1/check-digest/{sourceId}/{objectId}:
+    parameters:
+      - $ref: "#/components/parameters/authHeader"
+      - $ref: "#/components/parameters/environmentHeader"
+      - $ref: "#/components/parameters/userAgentHeader"
+      - $ref: "#/components/parameters/sourceId"
+      - $ref: "#/components/parameters/objectId"
+      - $ref: "#/components/parameters/digest"
+      - $ref: "#/components/parameters/useContentLake"
+    get:
+      tags:
+        - files
+      summary: Check if digest is present in specified object in the data lake
+      description: >-
+        Checks if digest is present in specified object found by sourceId and
+        objectId in the data lake
+      operationId: checkDigest
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CheckDigestResponse"
+        "400":
+          description: Bad Request
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+        "404":
+          description: Not Found
+        "500":
+          description: Internal Server Error
+      x-amazon-apigateway-integration:
+        type: HTTP
+        httpMethod: GET
+        uri: ${INSIGHT_INGESTION_ROOT_NCP}/v1/check-digest/{sourceId}/{objectId}
+        connectionType: VPC_LINK
+        connectionId: "{vpcLinkId}"
+        requestParameters:
+          integration.request.header.authorization: method.request.header.authorization
+          integration.request.header.hxp-environment: method.request.header.hxp-environment
+          integration.request.header.user-agent: method.request.header.user-agent
+          integration.request.header.x-cin-from-apigw: "'true'"
+          integration.request.path.sourceId: method.request.path.sourceId
+          integration.request.path.objectId: method.request.path.objectId
+          integration.request.querystring.digest: method.request.querystring.digest
+          integration.request.querystring.useContentLake: method.request.querystring.useContentLake
+        responses:
+          "200":
+            statusCode: 200
+          "400":
+            statusCode: 400
+          "401":
+            statusCode: 401
+          "403":
+            statusCode: 403
+          "404":
+            statusCode: 404
+          "500":
+            statusCode: 500
+        passthroughBehavior: when_no_match
+        timeoutInMillis: 29000
