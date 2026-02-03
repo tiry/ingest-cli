@@ -1,0 +1,40 @@
+Technical Specification Document
+================================
+
+System Architecture Overview
+----------------------------
+This document describes the technical architecture of the
+Document Ingestion Pipeline system.
+
+Components
+----------
+1. Reader Module
+   - CSV Reader: Parses CSV files with metadata
+   - JSON Reader: Handles JSON/JSONL formats
+   - Directory Reader: Scans file systems
+
+2. Mapper Framework
+   - Transforms raw documents to API format
+   - Supports custom mapping functions
+   - Validates required fields
+
+3. API Client
+   - OAuth2 authentication
+   - Batch processing support
+   - Retry logic with exponential backoff
+
+Data Flow
+---------
+Reader -> Mapper -> Validator -> API Client -> Ingestion API
+
+Performance Requirements
+------------------------
+- Handle 10,000+ documents per batch
+- Process at minimum 100 documents/second
+- Support files up to 100MB each
+
+Security Considerations
+-----------------------
+- All credentials stored securely
+- TLS 1.2+ for API communication
+- Token refresh before expiration

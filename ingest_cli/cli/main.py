@@ -118,10 +118,23 @@ def validate(ctx: click.Context, config: Optional[str], show_config: bool) -> No
 @click.pass_context
 def readers(ctx: click.Context) -> None:
     """List available document readers."""
-    # TODO: Implement reader listing in Step 4
-    click.echo("Available readers:")
-    click.echo("  - csv: CSV file reader (default)")
-    click.echo("\nMore readers coming soon...")
+    from ingest_cli.readers import get_reader_info
+
+    reader_info = get_reader_info()
+
+    click.echo("\nAvailable readers:")
+    click.echo()
+
+    # Find max name length for alignment
+    max_name_len = max(len(r["name"]) for r in reader_info) if reader_info else 10
+
+    for reader in reader_info:
+        name = reader["name"].ljust(max_name_len)
+        desc = reader["description"]
+        click.echo(f"  {click.style(name, fg='cyan')}  {desc}")
+
+    click.echo()
+    click.echo("Use 'ingest run --reader <name> --input <source>' to process documents.")
 
 
 @cli.command()

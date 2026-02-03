@@ -1,0 +1,35 @@
+User Guide - Version 2.0
+=========================
+
+Introduction
+------------
+Welcome to the Product User Guide, version 2.0. This document
+covers all features and functionality of our software platform.
+
+Getting Started
+---------------
+1. Install the application from the official download page
+2. Run the setup wizard and follow the prompts
+3. Enter your license key when requested
+4. Create your first project
+
+New Features in Version 2.0
+---------------------------
+- Dark mode theme support
+- Enhanced search functionality with filters
+- Export data to CSV, JSON, and PDF formats
+- Multi-language support (EN, FR, DE, ES)
+- Real-time collaboration features
+
+Troubleshooting
+---------------
+If you encounter issues:
+- Check the FAQ section on our website
+- Contact support at support@example.com
+- Submit a ticket via the help portal
+
+Support Information
+-------------------
+Email: support@example.com
+Phone: 1-800-EXAMPLE
+Hours: Monday-Friday, 9am-5pm EST
