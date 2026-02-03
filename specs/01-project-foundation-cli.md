@@ -150,13 +150,39 @@ pytest tests/ -v
 # All 9 tests should pass
 ```
 
+### 6. CI/CD with GitHub Actions
+
+GitHub Actions workflow at `.github/workflows/ci.yml` with:
+
+**Jobs:**
+1. **test** - Run pytest with coverage, generate coverage badge
+2. **lint** - Run ruff check and format verification
+3. **typecheck** - Run mypy type checking
+
+**Features:**
+- Triggers on push/PR to main/master branches
+- Python 3.12 with pip caching
+- Coverage reports (XML, HTML) with badge generation
+- Coverage badge stored on separate `badges` branch
+- Coverage PR comments for PRs
+- Coverage HTML report archived as artifact
+
+**README Badges:**
+- CI status badge (linked to workflow)
+- Coverage badge (from badges branch)
+- Python version badge
+- License badge
+
+---
+
 ## Files Created
 
 | File | Purpose |
 |------|---------|
 | `pyproject.toml` | Project configuration |
 | `.gitignore` | Git ignores |
-| `README.md` | Documentation |
+| `README.md` | Documentation with badges |
+| `.github/workflows/ci.yml` | GitHub Actions CI workflow |
 | `ingest_cli/__init__.py` | Package root |
 | `ingest_cli/cli/__init__.py` | CLI module init |
 | `ingest_cli/cli/main.py` | CLI implementation |
