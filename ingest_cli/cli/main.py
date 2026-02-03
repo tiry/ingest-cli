@@ -7,6 +7,11 @@ from typing import Optional
 import click
 
 from ingest_cli import __version__
+from ingest_cli.config import (
+    ConfigurationError,
+    get_config_summary,
+    validate_config_file,
+)
 
 
 def setup_logging(verbose: bool) -> None:
@@ -72,8 +77,14 @@ def version(ctx: click.Context) -> None:
     type=click.Path(exists=True),
     help="Path to configuration file to validate.",
 )
+@click.option(
+    "--show-config",
+    is_flag=True,
+    default=False,
+    help="Display configuration values (secrets redacted).",
+)
 @click.pass_context
-def validate(ctx: click.Context, config: Optional[str]) -> None:
+def validate(ctx: click.Context, config: Optional[str], show_config: bool) -> None:
     """Validate configuration file."""
     config_path = config or ctx.obj.get("config")
     if not config_path:
@@ -81,9 +92,26 @@ def validate(ctx: click.Context, config: Optional[str]) -> None:
         click.echo("Use --config option or set INGEST_CONFIG environment variable.", err=True)
         ctx.exit(1)
 
-    # TODO: Implement configuration validation in Step 2
     click.echo(f"Validating configuration: {config_path}")
-    click.echo("Configuration validation not yet implemented.")
+
+    try:
+        settings, warnings = validate_config_file(config_path)
+        click.echo(click.style("✅ Configuration is valid!", fg="green"))
+
+        # Show warnings if any
+        for warning in warnings:
+            click.echo(click.style(f"⚠️  {warning}", fg="yellow"))
+
+        # Optionally show configuration
+        if show_config:
+            click.echo("\nConfiguration values:")
+            summary = get_config_summary(settings)
+            for key, value in summary.items():
+                click.echo(f"  {key}: {value}")
+
+    except ConfigurationError as e:
+        click.echo(click.style(f"❌ Configuration error: {e}", fg="red"), err=True)
+        ctx.exit(1)
 
 
 @cli.command()

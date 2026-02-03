@@ -1,0 +1,55 @@
+# Ingest CLI Configuration
+# Copy this file to config.yaml and update with your values
+#
+# Environment variables with INGEST_ prefix will override these values.
+# For example: INGEST_CLIENT_ID overrides client_id
+
+# ============================================================================
+# Required: Target Environment
+# ============================================================================
+
+# Environment identifier for the target HxAI environment
+environment_id: "your-environment-id"
+
+# Source UUID for document ingestion (must be valid UUID format)
+source_id: "00000000-0000-0000-0000-000000000000"
+
+# System integration identifier
+system_integration_id: "your-integration-id"
+
+# ============================================================================
+# Authentication
+# ============================================================================
+# IMPORTANT: We recommend using environment variables for sensitive values:
+#   export INGEST_CLIENT_ID="your-client-id"
+#   export INGEST_CLIENT_SECRET="your-client-secret"
+
+# OAuth2 Client ID (or set INGEST_CLIENT_ID environment variable)
+client_id: "your-client-id"
+
+# OAuth2 Client Secret (or set INGEST_CLIENT_SECRET environment variable)
+client_secret: "your-client-secret"
+
+# ============================================================================
+# API Endpoints (optional - defaults should work for production)
+# ============================================================================
+
+# Ingestion API base URL
+# ingest_endpoint: "https://ingestion.insight.experience.hyland.com/"
+
+# OAuth2 token endpoint
+# auth_endpoint: "https://auth.hyland.com/connect/token"
+
+# ============================================================================
+# Processing Options
+# ============================================================================
+
+# Number of documents per batch (1-100, default: 50)
+# Smaller batches mean more API calls but less data loss on failure
+batch_size: 50
+
+# Seconds to wait between retry attempts (default: 2.0)
+retry_backoff: 2.0
+
+# Maximum number of retry attempts (default: 3)
+max_retries: 3
