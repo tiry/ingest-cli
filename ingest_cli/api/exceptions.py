@@ -110,3 +110,85 @@ class NetworkError(APIError):
                 message = "Network error occurred"
 
         super().__init__(message)
+
+
+# ============================================================================
+# Ingestion API Exceptions
+# ============================================================================
+
+
+class IngestionError(APIError):
+    """Base exception for ingestion API errors."""
+
+    def __init__(
+        self,
+        message: str | None = None,
+        status_code: int | None = None,
+    ) -> None:
+        """Initialize the exception.
+
+        Args:
+            message: Error message.
+            status_code: HTTP status code if available.
+        """
+        self.status_code = status_code
+        super().__init__(message or "Ingestion error occurred")
+
+
+class PresignedUrlError(IngestionError):
+    """Failed to obtain presigned URLs for file upload.
+
+    Raised when the /v1/presigned-urls endpoint fails.
+    """
+
+    def __init__(
+        self,
+        message: str | None = None,
+        status_code: int | None = None,
+    ) -> None:
+        if message is None:
+            message = "Failed to obtain presigned URLs"
+        super().__init__(message, status_code)
+
+
+class FileUploadError(IngestionError):
+    """Failed to upload file to presigned URL.
+
+    Raised when file upload to S3 fails.
+    """
+
+    def __init__(
+        self,
+        message: str | None = None,
+        file_path: str | None = None,
+        status_code: int | None = None,
+    ) -> None:
+        self.file_path = file_path
+
+        if message is None:
+            if file_path:
+                message = f"Failed to upload file: {file_path}"
+            else:
+                message = "Failed to upload file"
+
+        super().__init__(message, status_code)
+
+
+class EventSendError(IngestionError):
+    """Failed to send ingestion events.
+
+    Raised when the /v2/ingestion-events endpoint fails.
+    """
+
+    def __init__(
+        self,
+        message: str | None = None,
+        status_code: int | None = None,
+        error_details: dict | None = None,
+    ) -> None:
+        self.error_details = error_details
+
+        if message is None:
+            message = "Failed to send ingestion events"
+
+        super().__init__(message, status_code)
