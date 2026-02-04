@@ -168,6 +168,12 @@ ruff check .
 mypy ingest_cli/
 ```
 
+## Documentation
+
+- **[Usage Guide](Usage.md)** - Detailed CLI usage instructions and examples
+- **[config.example.yaml](config.example.yaml)** - Example configuration file
+- **[specs/](specs/)** - Implementation specifications
+
 ## License
 
 MIT License
