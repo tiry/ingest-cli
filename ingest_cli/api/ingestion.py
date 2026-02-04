@@ -200,9 +200,7 @@ class IngestionClient:
 
         return self._handle_presigned_response(response)
 
-    def _handle_presigned_response(
-        self, response: httpx.Response
-    ) -> list[PresignedUrl]:
+    def _handle_presigned_response(self, response: httpx.Response) -> list[PresignedUrl]:
         """Handle presigned URL response.
 
         Args:
@@ -334,9 +332,7 @@ class IngestionClient:
         headers = self._get_headers()
 
         # Build request body
-        content_events = [
-            event.model_dump(by_alias=True, exclude_none=True) for event in events
-        ]
+        content_events = [event.model_dump(by_alias=True, exclude_none=True) for event in events]
         request_body = {
             "sourceId": self._source_id,
             "contentEvents": content_events,

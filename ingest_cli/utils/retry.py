@@ -40,9 +40,7 @@ class RetryConfig:
     max_retries: int = 1
     backoff_seconds: float = 2.0
     backoff_multiplier: float = 2.0
-    retry_on: tuple[type[Exception], ...] = field(
-        default_factory=_get_default_retry_on
-    )
+    retry_on: tuple[type[Exception], ...] = field(default_factory=_get_default_retry_on)
 
     def should_retry(self, exception: Exception) -> bool:
         """Check if an exception should trigger a retry.
@@ -108,9 +106,7 @@ def retry(
                         raise
 
                     # Calculate backoff with exponential increase
-                    delay = config.backoff_seconds * (
-                        config.backoff_multiplier ** (attempt - 1)
-                    )
+                    delay = config.backoff_seconds * (config.backoff_multiplier ** (attempt - 1))
 
                     # Check for retry_after hint
                     if hasattr(e, "retry_after") and e.retry_after:

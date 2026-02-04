@@ -16,6 +16,7 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+
 @dataclass
 class ValidationResult:
     """Result of a validation check.
@@ -92,17 +93,13 @@ class PipelineValidator:
         # Validate endpoints
         if config.ingest_endpoint:
             if not self._is_valid_url(config.ingest_endpoint):
-                result.add_error(
-                    f"Invalid ingest_endpoint URL: {config.ingest_endpoint}"
-                )
+                result.add_error(f"Invalid ingest_endpoint URL: {config.ingest_endpoint}")
         else:
             result.add_error("Missing required field: ingest_endpoint")
 
         if config.auth_endpoint:
             if not self._is_valid_url(config.auth_endpoint):
-                result.add_error(
-                    f"Invalid auth_endpoint URL: {config.auth_endpoint}"
-                )
+                result.add_error(f"Invalid auth_endpoint URL: {config.auth_endpoint}")
         else:
             result.add_error("Missing required field: auth_endpoint")
 
@@ -141,9 +138,7 @@ class PipelineValidator:
         except PermissionError:
             result.add_error(f"Permission denied reading: {input_path}")
         except UnicodeDecodeError:
-            result.add_warning(
-                f"File may not be UTF-8 encoded: {input_path}"
-            )
+            result.add_warning(f"File may not be UTF-8 encoded: {input_path}")
         except Exception as e:
             result.add_error(f"Cannot read file {input_path}: {e}")
 
@@ -206,18 +201,13 @@ class PipelineValidator:
             try:
                 mapped = mapper.map(doc)
                 if mapped is None:
-                    result.add_warning(
-                        f"Mapper returned None for document {i + 1}"
-                    )
+                    result.add_warning(f"Mapper returned None for document {i + 1}")
                 elif not isinstance(mapped, dict):
                     result.add_error(
-                        f"Mapper returned non-dict for document {i + 1}: "
-                        f"{type(mapped).__name__}"
+                        f"Mapper returned non-dict for document {i + 1}: {type(mapped).__name__}"
                     )
             except Exception as e:
-                result.add_error(
-                    f"Mapper failed on document {i + 1}: {e}"
-                )
+                result.add_error(f"Mapper failed on document {i + 1}: {e}")
 
         return result
 
@@ -251,9 +241,7 @@ class PipelineValidator:
         # Validate file exists if path is set
         if document.file_path is not None:
             if not document.file_path.exists():
-                result.add_error(
-                    f"File not found: {document.file_path}"
-                )
+                result.add_error(f"File not found: {document.file_path}")
 
         return result
 
@@ -326,9 +314,7 @@ class PipelineValidator:
 
         # Get sample documents for mapper validation
         try:
-            sample_docs = list(
-                self._take_n(reader.read(input_path), self.sample_size)
-            )
+            sample_docs = list(self._take_n(reader.read(input_path), self.sample_size))
         except Exception:
             sample_docs = []
 

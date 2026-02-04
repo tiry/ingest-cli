@@ -44,8 +44,7 @@ def create_reader(
         if reader_class is None:
             available = ", ".join(ReaderRegistry.names())
             raise ReaderNotFoundError(
-                f"Unknown reader type: '{reader_type}'. "
-                f"Available readers: {available}"
+                f"Unknown reader type: '{reader_type}'. Available readers: {available}"
             )
         logger.debug(f"Creating reader: {reader_type}")
         return reader_class()

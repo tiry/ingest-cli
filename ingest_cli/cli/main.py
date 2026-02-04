@@ -69,9 +69,7 @@ def display_results(result: "PipelineResult", dry_run: bool = False) -> None:
         click.echo(click.style("Status: ✅ Success", fg="green", bold=True))
     else:
         click.echo(
-            click.style(
-                f"Status: ❌ Completed with {result.failed} errors", fg="red", bold=True
-            )
+            click.style(f"Status: ❌ Completed with {result.failed} errors", fg="red", bold=True)
         )
 
 
@@ -136,9 +134,7 @@ def validate(ctx: click.Context, config: Optional[str], show_config: bool) -> No
     config_path = config or ctx.obj.get("config")
     if not config_path:
         click.echo("Error: No configuration file specified.", err=True)
-        click.echo(
-            "Use --config option or set INGEST_CONFIG environment variable.", err=True
-        )
+        click.echo("Use --config option or set INGEST_CONFIG environment variable.", err=True)
         ctx.exit(1)
 
     click.echo(f"Validating configuration: {config_path}")
@@ -302,9 +298,7 @@ def run(
     # Validate config path
     if not config_path:
         click.echo("Error: No configuration file specified.", err=True)
-        click.echo(
-            "Use --config option or set INGEST_CONFIG environment variable.", err=True
-        )
+        click.echo("Use --config option or set INGEST_CONFIG environment variable.", err=True)
         ctx.exit(1)
 
     # Display header

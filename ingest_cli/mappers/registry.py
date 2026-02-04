@@ -14,9 +14,7 @@ class MapperNotFoundError(MapperError):
     def __init__(self, name: str, available: list[str]) -> None:
         self.name = name
         self.available = available
-        super().__init__(
-            f"Mapper '{name}' not found. Available: {', '.join(available)}"
-        )
+        super().__init__(f"Mapper '{name}' not found. Available: {', '.join(available)}")
 
 
 class MapperRegistry:

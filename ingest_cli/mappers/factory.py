@@ -129,9 +129,7 @@ def _load_from_module(module_path: str, config: dict[str, Any]) -> BaseMapper:
         # Find mapper class in module
         mapper_class = _find_mapper_class(module)
         if mapper_class is None:
-            raise MapperLoadError(
-                f"No BaseMapper subclass found in {module_path}"
-            )
+            raise MapperLoadError(f"No BaseMapper subclass found in {module_path}")
 
         return _create_instance(mapper_class, config)
 
@@ -165,11 +163,7 @@ def _find_mapper_class(module: Any) -> type[BaseMapper] | None:
         if name.startswith("_"):
             continue
         obj = getattr(module, name)
-        if (
-            isinstance(obj, type)
-            and issubclass(obj, BaseMapper)
-            and obj is not BaseMapper
-        ):
+        if isinstance(obj, type) and issubclass(obj, BaseMapper) and obj is not BaseMapper:
             return obj
 
     return None

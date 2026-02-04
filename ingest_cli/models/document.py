@@ -155,13 +155,9 @@ class Document:
         props: dict[str, PropertyValue] = {
             "name": NameAnnotation(value=self.name),
             "type": TypeAnnotation(value=self.doc_type),
-            "dateCreated": DateCreatedAnnotation(
-                value=format_datetime(self.date_created)
-            ),
+            "dateCreated": DateCreatedAnnotation(value=format_datetime(self.date_created)),
             "createdBy": CreatedByAnnotation(value=self.created_by),
-            "dateModified": DateModifiedAnnotation(
-                value=format_datetime(self.date_modified)
-            ),
+            "dateModified": DateModifiedAnnotation(value=format_datetime(self.date_modified)),
             "modifiedBy": ModifiedByAnnotation(value=self.modified_by),
         }
 

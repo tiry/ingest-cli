@@ -357,9 +357,7 @@ class IngestionPipeline:
             properties=document.properties or {},
         )
 
-    def _upload_files(
-        self, events: list[CreateOrUpdateEvent], documents: list[Document]
-    ) -> int:
+    def _upload_files(self, events: list[CreateOrUpdateEvent], documents: list[Document]) -> int:
         """Upload files for documents that have file references.
 
         Args:
@@ -388,9 +386,7 @@ class IngestionPipeline:
 
         # Upload each file
         uploaded = 0
-        for (event, document), presigned_url in zip(
-            docs_with_files, presigned_urls, strict=False
-        ):
+        for (event, document), presigned_url in zip(docs_with_files, presigned_urls, strict=False):
             try:
                 if document.file_path:
                     result = self._client.upload_file(presigned_url, document.file_path)
