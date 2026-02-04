@@ -17,7 +17,8 @@ A Python CLI tool to import documents (files + metadata) from a local filesystem
 
 ## Implementation Steps
 
-### Step 1: Project Foundation & CLI Setup
+### Step 1: Project Foundation & CLI Setup ✅
+**Status:** Complete (spec: `01-project-foundation-cli.md`)
 **Goal:** Create the project structure with basic CLI skeleton
 
 **Deliverables:**
@@ -34,7 +35,8 @@ A Python CLI tool to import documents (files + metadata) from a local filesystem
 
 ---
 
-### Step 2: Configuration & Settings Module
+### Step 2: Configuration & Settings Module ✅
+**Status:** Complete (spec: `02-configuration-settings.md`)
 **Goal:** Implement robust configuration management
 
 **Deliverables:**
@@ -54,7 +56,8 @@ A Python CLI tool to import documents (files + metadata) from a local filesystem
 
 ---
 
-### Step 3: Authentication Client
+### Step 3: Authentication Client ✅
+**Status:** Complete (spec: `03-authentication-client.md`)
 **Goal:** Implement OAuth2 client credentials flow
 
 **Deliverables:**
@@ -70,7 +73,8 @@ A Python CLI tool to import documents (files + metadata) from a local filesystem
 
 ---
 
-### Step 4: Pluggable Reader Framework
+### Step 4: Pluggable Reader Framework ✅
+**Status:** Complete (spec: `04-pluggable-reader-framework.md`)
 **Goal:** Create an extensible reader architecture
 
 **Deliverables:**
@@ -87,7 +91,8 @@ A Python CLI tool to import documents (files + metadata) from a local filesystem
 
 ---
 
-### Step 5: Document Models
+### Step 5: Document Models ✅
+**Status:** Complete (spec: `05-document-models.md`, 35 tests)
 **Goal:** Define document and event data structures
 
 **Deliverables:**
@@ -103,7 +108,8 @@ A Python CLI tool to import documents (files + metadata) from a local filesystem
 
 ---
 
-### Step 6: Mapper Framework
+### Step 6: Mapper Framework 🔲
+**Status:** Not started
 **Goal:** Create Python-based document transformation
 
 **Deliverables:**
@@ -119,7 +125,8 @@ A Python CLI tool to import documents (files + metadata) from a local filesystem
 
 ---
 
-### Step 7: Ingestion API Client
+### Step 7: Ingestion API Client 🔲
+**Status:** Not started
 **Goal:** Implement the HxAI Ingestion API client
 
 **Deliverables:**
@@ -136,7 +143,8 @@ A Python CLI tool to import documents (files + metadata) from a local filesystem
 
 ---
 
-### Step 8: Pipeline Orchestrator
+### Step 8: Pipeline Orchestrator 🔲
+**Status:** Not started
 **Goal:** Implement the end-to-end pipeline
 
 **Deliverables:**
@@ -152,7 +160,8 @@ A Python CLI tool to import documents (files + metadata) from a local filesystem
 
 ---
 
-### Step 9: Error Handling & Retry Logic
+### Step 9: Error Handling & Retry Logic 🔲
+**Status:** Not started
 **Goal:** Robust error handling with retry
 
 **Deliverables:**
@@ -169,7 +178,8 @@ A Python CLI tool to import documents (files + metadata) from a local filesystem
 
 ---
 
-### Step 10: CLI Commands Implementation
+### Step 10: CLI Commands Implementation 🔲
+**Status:** Not started
 **Goal:** Complete CLI interface
 
 **Deliverables:**
@@ -192,7 +202,8 @@ A Python CLI tool to import documents (files + metadata) from a local filesystem
 
 ---
 
-### Step 11: Dry-Run Mode
+### Step 11: Dry-Run Mode 🔲
+**Status:** Not started
 **Goal:** Complete dry-run implementation
 
 **Deliverables:**
@@ -212,7 +223,8 @@ A Python CLI tool to import documents (files + metadata) from a local filesystem
 
 ---
 
-### Step 12: Documentation & Examples
+### Step 12: Documentation & Examples 🔲
+**Status:** Not started
 **Goal:** Complete documentation
 
 **Deliverables:**
