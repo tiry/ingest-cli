@@ -187,10 +187,10 @@ class Document:
                 props[key] = StringValue(value=str(value))
 
         return CreateOrUpdateEvent(
-            object_id=self.object_id,
-            source_id=source_id,
-            source_timestamp=source_timestamp,
-            properties=props,
+            objectId=self.object_id,
+            sourceId=source_id,
+            sourceTimestamp=source_timestamp,
+            properties=props,  # type: ignore[arg-type]
         )
 
     def to_delete_event(
@@ -211,7 +211,7 @@ class Document:
             source_timestamp = int(datetime.now().timestamp() * 1000)
 
         return DeleteEvent(
-            object_id=self.object_id,
-            source_id=source_id,
-            source_timestamp=source_timestamp,
+            objectId=self.object_id,
+            sourceId=source_id,
+            sourceTimestamp=source_timestamp,
         )

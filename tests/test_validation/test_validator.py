@@ -16,7 +16,6 @@ from ingest_cli.validation.validator import (
     format_validation_result,
 )
 
-
 # =============================================================================
 # ValidationResult Tests
 # =============================================================================
@@ -133,9 +132,7 @@ class TestConfigValidation:
         assert result.valid is False
         assert any("environment_id" in e for e in result.errors)
 
-    def test_missing_source_id(
-        self, validator: PipelineValidator, valid_config: Settings
-    ) -> None:
+    def test_missing_source_id(self, validator: PipelineValidator, valid_config: Settings) -> None:
         """Missing source_id should fail."""
         valid_config.source_id = ""
         result = validator.validate_config(valid_config)
@@ -209,9 +206,7 @@ class TestInputFileValidation:
         """Create a validator instance."""
         return PipelineValidator()
 
-    def test_existing_file_passes(
-        self, validator: PipelineValidator, tmp_path: Path
-    ) -> None:
+    def test_existing_file_passes(self, validator: PipelineValidator, tmp_path: Path) -> None:
         """Existing readable file should pass."""
         test_file = tmp_path / "test.csv"
         test_file.write_text("col1,col2\nval1,val2")
@@ -226,9 +221,7 @@ class TestInputFileValidation:
         assert result.valid is False
         assert any("not found" in e for e in result.errors)
 
-    def test_directory_fails(
-        self, validator: PipelineValidator, tmp_path: Path
-    ) -> None:
+    def test_directory_fails(self, validator: PipelineValidator, tmp_path: Path) -> None:
         """Directory path (not file) should fail."""
         result = validator.validate_input_file(tmp_path)
 
@@ -249,9 +242,7 @@ class TestReaderValidation:
         """Create a validator instance."""
         return PipelineValidator()
 
-    def test_working_reader_passes(
-        self, validator: PipelineValidator, tmp_path: Path
-    ) -> None:
+    def test_working_reader_passes(self, validator: PipelineValidator, tmp_path: Path) -> None:
         """Reader that can parse file should pass."""
         # Create mock reader
         mock_reader = MagicMock()
@@ -263,9 +254,7 @@ class TestReaderValidation:
         result = validator.validate_reader(mock_reader, test_file)
         assert result.valid is True
 
-    def test_empty_file_warns(
-        self, validator: PipelineValidator, tmp_path: Path
-    ) -> None:
+    def test_empty_file_warns(self, validator: PipelineValidator, tmp_path: Path) -> None:
         """Empty file should produce warning."""
         mock_reader = MagicMock()
         mock_reader.read.return_value = iter([])
@@ -278,9 +267,7 @@ class TestReaderValidation:
         assert result.valid is True  # Warning, not error
         assert any("empty" in w for w in result.warnings)
 
-    def test_reader_error_fails(
-        self, validator: PipelineValidator, tmp_path: Path
-    ) -> None:
+    def test_reader_error_fails(self, validator: PipelineValidator, tmp_path: Path) -> None:
         """Reader that throws error should fail."""
         mock_reader = MagicMock()
         mock_reader.read.side_effect = ValueError("Parse error")
@@ -382,9 +369,7 @@ class TestDocumentValidation:
         result = validator.validate_document(valid_document)
         assert result.valid is True
 
-    def test_empty_object_id_fails(
-        self, validator: PipelineValidator
-    ) -> None:
+    def test_empty_object_id_fails(self, validator: PipelineValidator) -> None:
         """Document with empty object_id should fail."""
         doc = Document(
             object_id="",  # Empty
@@ -401,9 +386,7 @@ class TestDocumentValidation:
         assert result.valid is False
         assert any("object_id" in e for e in result.errors)
 
-    def test_empty_name_fails(
-        self, validator: PipelineValidator
-    ) -> None:
+    def test_empty_name_fails(self, validator: PipelineValidator) -> None:
         """Document with empty name should fail."""
         doc = Document(
             object_id="doc-001",

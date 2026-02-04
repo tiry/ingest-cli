@@ -9,10 +9,13 @@ from typing import TYPE_CHECKING, Iterator
 from urllib.parse import urlparse
 
 if TYPE_CHECKING:
-    from ingest_cli.config.settings import Settings
+    from ingest_cli.config.settings import IngestSettings
     from ingest_cli.mappers.base import BaseMapper
     from ingest_cli.models.document import Document
     from ingest_cli.readers.base import BaseReader
+
+# Type alias for settings
+Settings = "IngestSettings"
 
 logger = logging.getLogger(__name__)
 
@@ -63,7 +66,7 @@ class PipelineValidator:
         """
         self.sample_size = sample_size
 
-    def validate_config(self, config: Settings) -> ValidationResult:
+    def validate_config(self, config: "IngestSettings") -> ValidationResult:
         """Validate configuration settings.
 
         Args:
@@ -162,7 +165,7 @@ class PipelineValidator:
 
         try:
             # Try to read a few records
-            records = list(self._take_n(reader.read(input_path), self.sample_size))
+            records = list(self._take_n(reader.read(str(input_path)), self.sample_size))
 
             if not records:
                 result.add_warning("Input file appears to be empty")
@@ -199,7 +202,7 @@ class PipelineValidator:
 
         for i, doc in enumerate(sample_docs):
             try:
-                mapped = mapper.map(doc)
+                mapped = mapper.map(doc)  # type: ignore[arg-type]
                 if mapped is None:
                     result.add_warning(f"Mapper returned None for document {i + 1}")
                 elif not isinstance(mapped, dict):
@@ -271,7 +274,7 @@ class PipelineValidator:
 
     def validate_all(
         self,
-        config: Settings,
+        config: "IngestSettings",
         input_path: Path,
         reader: BaseReader,
         mapper: BaseMapper,
@@ -314,7 +317,7 @@ class PipelineValidator:
 
         # Get sample documents for mapper validation
         try:
-            sample_docs = list(self._take_n(reader.read(input_path), self.sample_size))
+            sample_docs = list(self._take_n(reader.read(str(input_path)), self.sample_size))
         except Exception:
             sample_docs = []
 

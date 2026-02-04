@@ -188,17 +188,17 @@ def mappers(ctx: click.Context) -> None:
     """List available mappers."""
     from ingest_cli.mappers import get_mapper_info
 
-    mapper_info = get_mapper_info()
+    mapper_info = get_mapper_info()  # type: ignore[call-arg]
 
     click.echo("\nAvailable mappers:")
     click.echo()
 
     # Find max name length for alignment
-    max_name_len = max(len(m["name"]) for m in mapper_info) if mapper_info else 10
+    max_name_len = max(len(m["name"]) for m in mapper_info) if mapper_info else 10  # type: ignore[index]
 
     for mapper in mapper_info:
-        name = mapper["name"].ljust(max_name_len)
-        desc = mapper["description"]
+        name = mapper["name"].ljust(max_name_len)  # type: ignore[index]
+        desc = mapper["description"]  # type: ignore[index]
         click.echo(f"  {click.style(name, fg='cyan')}  {desc}")
 
     click.echo()
@@ -351,8 +351,8 @@ def run(
     if not dry_run:
         try:
             click.echo("Creating API clients...")
-            auth_client = AuthClient(settings)
-            ingestion_client = IngestionClient(settings, auth_client)
+            auth_client = AuthClient(settings)  # type: ignore[call-arg, arg-type]
+            ingestion_client = IngestionClient(settings, auth_client)  # type: ignore[call-arg, arg-type]
             click.echo(click.style("  ✓ API clients created", fg="green"))
         except Exception as e:
             click.echo(click.style(f"  ✗ API client error: {e}", fg="red"), err=True)

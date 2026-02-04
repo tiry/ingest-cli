@@ -320,7 +320,7 @@ class IngestionPipeline:
                 result.uploaded = uploaded
 
                 # Send events
-                response = self._client.send_events(events)
+                response = self._client.send_events(events)  # type: ignore[arg-type]
                 result.sent = response.events_processed
 
             except Exception as e:

@@ -141,14 +141,16 @@ class FileProperty(BaseModel):
         """
         return cls(
             file=FileMetadataWithUpload(
-                content_metadata=ContentMetadata(
-                    size=size,
-                    name=name,
-                    content_type=content_type,
-                    digest=digest,
-                ),
+                **{  # type: ignore[arg-type]
+                    "content-metadata": ContentMetadata(
+                        size=size,
+                        name=name,
+                        **{"content-type": content_type},  # type: ignore[arg-type]
+                        digest=digest,
+                    ),
+                    "content-type": content_type,
+                },
                 id=upload_id,
-                content_type=content_type,
             )
         )
 
@@ -163,7 +165,7 @@ class FileProperty(BaseModel):
         Returns:
             FileProperty with upload ID only
         """
-        return cls(file=FileUpload(id=upload_id, content_type=content_type))
+        return cls(file=FileUpload(id=upload_id, **{"content-type": content_type}))  # type: ignore[arg-type]
 
     @classmethod
     def metadata_only(
@@ -186,11 +188,13 @@ class FileProperty(BaseModel):
         """
         return cls(
             file=FileMetadataOnly(
-                content_metadata=ContentMetadata(
-                    size=size,
-                    name=name,
-                    content_type=content_type,
-                    digest=digest,
-                )
+                **{  # type: ignore[arg-type]
+                    "content-metadata": ContentMetadata(
+                        size=size,
+                        name=name,
+                        **{"content-type": content_type},  # type: ignore[arg-type]
+                        digest=digest,
+                    )
+                }
             )
         )

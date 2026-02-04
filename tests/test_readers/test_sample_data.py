@@ -32,9 +32,7 @@ def absolute_csv_manifest(tmp_path: Path) -> Path:
 class TestSampleDataset:
     """Integration tests using tests/data sample files."""
 
-    def test_csv_reader_loads_sample_manifest(
-        self, absolute_csv_manifest: Path
-    ) -> None:
+    def test_csv_reader_loads_sample_manifest(self, absolute_csv_manifest: Path) -> None:
         """CSV reader correctly loads the sample manifest."""
         reader = CSVReader()
         docs = list(reader.read(str(absolute_csv_manifest)))
@@ -63,9 +61,7 @@ class TestSampleDataset:
         assert spec.metadata["author"] == "Engineering Team"
         assert spec.exists
 
-    def test_csv_reader_loads_content_correctly(
-        self, absolute_csv_manifest: Path
-    ) -> None:
+    def test_csv_reader_loads_content_correctly(self, absolute_csv_manifest: Path) -> None:
         """CSV reader can load file content."""
         reader = CSVReader()
         docs = list(reader.read(str(absolute_csv_manifest)))
@@ -122,9 +118,7 @@ class TestSampleDataset:
         reader = create_reader(source=docs_dir)
         assert isinstance(reader, DirectoryReader)
 
-    def test_all_documents_exist_and_readable(
-        self, absolute_csv_manifest: Path
-    ) -> None:
+    def test_all_documents_exist_and_readable(self, absolute_csv_manifest: Path) -> None:
         """All documents in the sample dataset exist and are readable."""
         reader = CSVReader()
         docs = list(reader.read(str(absolute_csv_manifest)))

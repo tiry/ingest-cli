@@ -105,13 +105,15 @@ class TestIdentityMapper:
     def test_identity_mapper_basic(self):
         """Test basic identity mapping."""
         mapper = IdentityMapper()
-        raw = RawDocument.from_data({
-            "object_id": "doc-123",
-            "name": "Test Document",
-            "doc_type": "Report",
-            "created_by": "user-1",
-            "modified_by": "user-2",
-        })
+        raw = RawDocument.from_data(
+            {
+                "object_id": "doc-123",
+                "name": "Test Document",
+                "doc_type": "Report",
+                "created_by": "user-1",
+                "modified_by": "user-2",
+            }
+        )
 
         doc = mapper.map(raw)
 
@@ -126,15 +128,17 @@ class TestIdentityMapper:
         """Test mapping with datetime values."""
         mapper = IdentityMapper()
         dt = datetime(2024, 1, 15, 10, 30)
-        raw = RawDocument.from_data({
-            "object_id": "doc-123",
-            "name": "Test",
-            "doc_type": "Report",
-            "date_created": dt,
-            "created_by": "user-1",
-            "date_modified": "2024-02-15T14:20:00Z",
-            "modified_by": "user-2",
-        })
+        raw = RawDocument.from_data(
+            {
+                "object_id": "doc-123",
+                "name": "Test",
+                "doc_type": "Report",
+                "date_created": dt,
+                "created_by": "user-1",
+                "date_modified": "2024-02-15T14:20:00Z",
+                "modified_by": "user-2",
+            }
+        )
 
         doc = mapper.map(raw)
 
@@ -145,15 +149,17 @@ class TestIdentityMapper:
     def test_identity_mapper_with_file(self):
         """Test mapping with file path."""
         mapper = IdentityMapper()
-        raw = RawDocument.from_data({
-            "object_id": "doc-123",
-            "name": "Test",
-            "doc_type": "Report",
-            "created_by": "user-1",
-            "modified_by": "user-2",
-            "file_path": "/path/to/file.pdf",
-            "file_content_type": "application/pdf",
-        })
+        raw = RawDocument.from_data(
+            {
+                "object_id": "doc-123",
+                "name": "Test",
+                "doc_type": "Report",
+                "created_by": "user-1",
+                "modified_by": "user-2",
+                "file_path": "/path/to/file.pdf",
+                "file_content_type": "application/pdf",
+            }
+        )
 
         doc = mapper.map(raw)
 
@@ -163,14 +169,16 @@ class TestIdentityMapper:
     def test_identity_mapper_with_properties(self):
         """Test mapping with custom properties."""
         mapper = IdentityMapper()
-        raw = RawDocument.from_data({
-            "object_id": "doc-123",
-            "name": "Test",
-            "doc_type": "Report",
-            "created_by": "user-1",
-            "modified_by": "user-2",
-            "properties": {"department": "Engineering", "priority": 1},
-        })
+        raw = RawDocument.from_data(
+            {
+                "object_id": "doc-123",
+                "name": "Test",
+                "doc_type": "Report",
+                "created_by": "user-1",
+                "modified_by": "user-2",
+                "properties": {"department": "Engineering", "priority": 1},
+            }
+        )
 
         doc = mapper.map(raw)
 
@@ -179,11 +187,13 @@ class TestIdentityMapper:
     def test_identity_mapper_missing_field(self):
         """Test missing required field raises error."""
         mapper = IdentityMapper()
-        raw = RawDocument.from_data({
-            "object_id": "doc-123",
-            "name": "Test",
-            # Missing doc_type, created_by, modified_by
-        })
+        raw = RawDocument.from_data(
+            {
+                "object_id": "doc-123",
+                "name": "Test",
+                # Missing doc_type, created_by, modified_by
+            }
+        )
 
         with pytest.raises(MissingFieldError) as exc_info:
             mapper.map(raw)
@@ -209,13 +219,15 @@ class TestFieldMapper:
     def test_field_mapper_no_mapping(self):
         """Test field mapper without mapping (uses field names as-is)."""
         mapper = FieldMapper()
-        raw = RawDocument.from_data({
-            "object_id": "doc-123",
-            "name": "Test",
-            "doc_type": "Report",
-            "created_by": "user-1",
-            "modified_by": "user-2",
-        })
+        raw = RawDocument.from_data(
+            {
+                "object_id": "doc-123",
+                "name": "Test",
+                "doc_type": "Report",
+                "created_by": "user-1",
+                "modified_by": "user-2",
+            }
+        )
 
         doc = mapper.map(raw)
 
@@ -233,13 +245,15 @@ class TestFieldMapper:
                 "modified_by": "editor",
             }
         )
-        raw = RawDocument.from_data({
-            "id": "doc-456",
-            "title": "My Document",
-            "category": "Memo",
-            "author": "jane",
-            "editor": "bob",
-        })
+        raw = RawDocument.from_data(
+            {
+                "id": "doc-456",
+                "title": "My Document",
+                "category": "Memo",
+                "author": "jane",
+                "editor": "bob",
+            }
+        )
 
         doc = mapper.map(raw)
 
@@ -258,11 +272,13 @@ class TestFieldMapper:
                 "modified_by": "system",
             }
         )
-        raw = RawDocument.from_data({
-            "object_id": "doc-123",
-            "name": "Test",
-            # No doc_type, created_by, modified_by
-        })
+        raw = RawDocument.from_data(
+            {
+                "object_id": "doc-123",
+                "name": "Test",
+                # No doc_type, created_by, modified_by
+            }
+        )
 
         doc = mapper.map(raw)
 
@@ -273,11 +289,13 @@ class TestFieldMapper:
     def test_field_mapper_missing_required(self):
         """Test field mapper with missing required field."""
         mapper = FieldMapper(mapping={"object_id": "id"})
-        raw = RawDocument.from_data({
-            "id": "doc-123",
-            "name": "Test",
-            # Missing doc_type, created_by, modified_by
-        })
+        raw = RawDocument.from_data(
+            {
+                "id": "doc-123",
+                "name": "Test",
+                # Missing doc_type, created_by, modified_by
+            }
+        )
 
         with pytest.raises(MapperError, match="Required field"):
             mapper.map(raw)
@@ -362,12 +380,14 @@ class TestMapperFactory:
 
         assert isinstance(mapper, FieldMapper)
         # Verify config was applied by mapping a document
-        raw = RawDocument.from_data({
-            "id": "123",
-            "name": "Test",
-            "created_by": "user",
-            "modified_by": "user",
-        })
+        raw = RawDocument.from_data(
+            {
+                "id": "123",
+                "name": "Test",
+                "created_by": "user",
+                "modified_by": "user",
+            }
+        )
         doc = mapper.map(raw)
         assert doc.object_id == "123"
         assert doc.doc_type == "Test"
@@ -424,16 +444,18 @@ class TestMapperIntegration:
     def test_identity_mapper_to_event(self):
         """Test full workflow: raw -> document -> event."""
         mapper = IdentityMapper()
-        raw = RawDocument.from_data({
-            "object_id": "doc-integration-test",
-            "name": "Integration Test Document",
-            "doc_type": "TestReport",
-            "created_by": "test-user",
-            "modified_by": "test-user",
-            "date_created": "2024-01-15T10:30:00Z",
-            "date_modified": "2024-01-16T14:20:00Z",
-            "properties": {"version": "1.0"},
-        })
+        raw = RawDocument.from_data(
+            {
+                "object_id": "doc-integration-test",
+                "name": "Integration Test Document",
+                "doc_type": "TestReport",
+                "created_by": "test-user",
+                "modified_by": "test-user",
+                "date_created": "2024-01-15T10:30:00Z",
+                "date_modified": "2024-01-16T14:20:00Z",
+                "properties": {"version": "1.0"},
+            }
+        )
 
         # Map to document
         doc = mapper.map(raw)
@@ -456,13 +478,15 @@ class TestMapperIntegration:
                 "modified_by": "last_editor",
             }
         )
-        raw = RawDocument.from_data({
-            "document_id": "mapped-doc-123",
-            "document_title": "Mapped Document",
-            "document_type": "MappedReport",
-            "author": "mapper-user",
-            "last_editor": "editor-user",
-        })
+        raw = RawDocument.from_data(
+            {
+                "document_id": "mapped-doc-123",
+                "document_title": "Mapped Document",
+                "document_type": "MappedReport",
+                "author": "mapper-user",
+                "last_editor": "editor-user",
+            }
+        )
 
         doc = mapper.map(raw)
         event = doc.to_event(source_id="test-source")

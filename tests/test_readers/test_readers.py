@@ -112,11 +112,13 @@ class TestCSVReader:
         csv_file.write_text(f"path,name\n{file},My Doc\n")
 
         reader = CSVReader()
-        docs = list(reader.read(
-            str(csv_file),
-            path_column="path",
-            title_column="name",
-        ))
+        docs = list(
+            reader.read(
+                str(csv_file),
+                path_column="path",
+                title_column="name",
+            )
+        )
 
         assert len(docs) == 1
         assert docs[0].title == "My Doc"
@@ -127,11 +129,13 @@ class TestCSVReader:
         existing.write_text("content")
 
         csv_file = tmp_path / "data.csv"
-        csv_file.write_text(dedent(f"""\
+        csv_file.write_text(
+            dedent(f"""\
             file_path,title
             {existing},Existing
             /nonexistent/file.txt,Missing
-        """))
+        """)
+        )
 
         reader = CSVReader()
         docs = list(reader.read(str(csv_file)))
@@ -200,9 +204,13 @@ class TestJSONReader:
         file.write_text("content")
 
         json_file = tmp_path / "data.json"
-        json_file.write_text(json.dumps([
-            {"file_path": str(file), "title": "Document One"},
-        ]))
+        json_file.write_text(
+            json.dumps(
+                [
+                    {"file_path": str(file), "title": "Document One"},
+                ]
+            )
+        )
 
         reader = JSONReader()
         docs = list(reader.read(str(json_file)))
@@ -237,9 +245,13 @@ class TestJSONReader:
         file.write_text("content")
 
         json_file = tmp_path / "data.json"
-        json_file.write_text(json.dumps([
-            {"file_path": str(file), "category": "Reports", "priority": 1},
-        ]))
+        json_file.write_text(
+            json.dumps(
+                [
+                    {"file_path": str(file), "category": "Reports", "priority": 1},
+                ]
+            )
+        )
 
         reader = JSONReader()
         docs = list(reader.read(str(json_file)))
@@ -250,9 +262,13 @@ class TestJSONReader:
     def test_json_missing_file_skipped(self, tmp_path: Path) -> None:
         """Missing files are skipped."""
         json_file = tmp_path / "data.json"
-        json_file.write_text(json.dumps([
-            {"file_path": "/nonexistent/file.txt", "title": "Missing"},
-        ]))
+        json_file.write_text(
+            json.dumps(
+                [
+                    {"file_path": "/nonexistent/file.txt", "title": "Missing"},
+                ]
+            )
+        )
 
         reader = JSONReader()
         docs = list(reader.read(str(json_file)))
@@ -267,7 +283,7 @@ class TestJSONReader:
         jsonl_file = tmp_path / "data.jsonl"
         jsonl_file.write_text(
             f'{{"file_path": "{file}", "title": "Valid"}}\n'
-            'not valid json\n'
+            "not valid json\n"
             '{"title": "Missing path"}\n'
         )
 
