@@ -78,11 +78,21 @@ class TestCliRunCommand:
         """Test that --dry-run flag is accepted."""
         runner = CliRunner()
         with runner.isolated_filesystem():
-            # Create a temporary config and input file
+            # Create a valid config with all required fields (use valid UUIDs)
+            config_content = """
+environment_id: hxai-84fe439b-e9a0-44d0-84da-07235736707e
+source_id: a52878a6-b459-4a13-bdd9-7d086f591d58
+system_integration_id: 7c9e6679-7425-40de-944b-e07fc1f90ae7
+client_id: test-client-id
+client_secret: test-client-secret
+ingest_endpoint: https://api.example.com/
+auth_endpoint: https://auth.example.com/token
+batch_size: 50
+"""
             with open("config.yaml", "w") as f:
-                f.write("environment_id: test\n")
+                f.write(config_content)
             with open("test.csv", "w") as f:
-                f.write("col1,col2\nval1,val2\n")
+                f.write("name,file_path\ndoc1,/path/to/file1.txt\n")
             result = runner.invoke(cli, ["-c", "config.yaml", "run", "-i", "test.csv", "--dry-run"])
-        assert result.exit_code == 0
+        assert result.exit_code == 0, f"Output: {result.output}"
         assert "DRY RUN MODE" in result.output
