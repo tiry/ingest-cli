@@ -112,7 +112,7 @@ class TestAuthClient:
             client_id=CLIENT_ID,
             client_secret=CLIENT_SECRET,
             auth_endpoint=AUTH_ENDPOINT,
-            scope="custom-scope",
+            scopes=["custom-scope", "another-scope"],
         )
 
         client.get_token()
@@ -123,7 +123,8 @@ class TestAuthClient:
         assert "grant_type=client_credentials" in content
         assert f"client_id={CLIENT_ID}" in content
         assert f"client_secret={CLIENT_SECRET}" in content
-        assert "scope=custom-scope" in content
+        # Scopes are joined with spaces (URL-encoded as +)
+        assert "scope=custom-scope" in content or "scope=custom-scope+another-scope" in content
 
     @respx.mock
     def test_token_caching(self) -> None:

@@ -80,6 +80,7 @@ class FileMetadataWithUpload(BaseModel):
     """File with both metadata and upload reference.
 
     Used when uploading a new file with complete metadata.
+    Note: content-type is specified at BOTH file level AND inside content-metadata.
 
     Example:
         {
@@ -95,7 +96,7 @@ class FileMetadataWithUpload(BaseModel):
     id: str = Field(min_length=1, description="Upload ID from presigned URL")
     content_type: str = Field(
         alias="content-type",
-        description="MIME type for the upload",
+        description="MIME type for the upload (must match content-metadata)",
     )
 
 

@@ -36,9 +36,15 @@ client_secret: "your-client-secret"
 
 # Ingestion API base URL
 # ingest_endpoint: "https://ingestion.insight.experience.hyland.com/"
+ingest_endpoint: "https://ingestion.insight.dev.experience.hyland.com"
 
 # OAuth2 token endpoint
 # auth_endpoint: "https://auth.hyland.com/connect/token"
+auth_endpoint: "https://auth.iam.dev.experience.hyland.com/idp/connect/token"
+
+# OAuth2 scopes to request (list of strings)
+# auth_scope: ["hxp"]
+auth_scope: ["hxp", "iam.user-data.account environment_authorization"]
 
 # ============================================================================
 # Processing Options

@@ -45,6 +45,9 @@ ingest readers
 # Validate your configuration
 ingest validate -c config.yaml
 
+# Test API connectivity (auth, upload, ingest)
+ingest check -c config.yaml
+
 # Run import (dry-run first!)
 ingest -c config.yaml run -i documents.csv --dry-run
 
@@ -117,6 +120,24 @@ List all available document readers.
 ```bash
 ingest readers
 ```
+
+### `ingest check`
+
+Test API connectivity with verbose output. Useful for debugging setup issues.
+
+```bash
+ingest check -c config.yaml [OPTIONS]
+
+Options:
+  --auth-only          Only check authentication (skip upload and ingest)
+  --skip-ingest        Check auth and upload, skip ingest event
+```
+
+The check command performs a full connectivity test:
+1. Validates configuration
+2. Tests OAuth2 token retrieval  
+3. Uploads a test file via presigned URL
+4. Sends a test ingestion event
 
 ## Project Structure
 

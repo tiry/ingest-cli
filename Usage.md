@@ -189,6 +189,88 @@ Available readers:
   dir      - Read documents from directory structure
 ```
 
+### `ingest check`
+
+Test API connectivity with verbose output. This is useful for debugging setup or code issues.
+
+```bash
+ingest check [OPTIONS]
+
+Options:
+  -c, --config PATH    Path to config file (required)
+  --auth-only          Only check authentication (skip upload and ingest)
+  --skip-ingest        Check auth and upload, skip ingest event
+  -h, --help           Show this help message
+```
+
+The check command performs a full connectivity test:
+
+1. **Configuration** - Validates and displays config settings
+2. **Authentication** - Tests OAuth2 token retrieval
+3. **File Upload** - Uploads a small test text file via presigned URL
+4. **Ingest Event** - Sends a test document ingestion event
+
+#### Examples
+
+```bash
+# Full connectivity check
+ingest -c config.yaml check
+
+# Only check authentication
+ingest -c config.yaml check --auth-only
+
+# Check auth and upload, skip ingest
+ingest -c config.yaml check --skip-ingest
+```
+
+#### Example Output
+
+```
+=== HxAI Ingestion API Connectivity Check ===
+
+Step 1/3: Loading configuration
+  Config file: config.yaml
+  ✓ Configuration loaded successfully
+
+  Configuration Summary:
+    Auth endpoint:    https://auth.hyland.com/connect/token
+    Ingest endpoint:  https://ingestion.insight.experience.hyland.com/
+    Environment ID:   abc123-def456-...
+    Source ID:        00000000-0000-0000-0000-000000000001
+    Client ID:        myClient...1234
+    Client secret:    ********************
+
+Step 2/3: Testing authentication
+  Creating auth client...
+    Token endpoint: https://auth.hyland.com/connect/token
+  ✓ Auth client created
+  Requesting OAuth2 token...
+  ✓ Token retrieved successfully
+
+  Token Info:
+    Token prefix:   eyJhbGciOiJSUzI1...
+    Token length:   1234 characters
+    Request time:   0.523s
+    Expires at:     2024-02-04T19:30:00Z
+
+Step 3/3: Testing file upload
+  Creating ingestion client...
+  ✓ Ingestion client created
+  Created test file: /tmp/ingest-cli-test-abc123.txt
+  Requesting presigned URL...
+  ✓ Presigned URL received
+  Uploading test file...
+  ✓ File uploaded successfully
+
+  Cleaned up temp file: /tmp/ingest-cli-test-abc123.txt
+
+=== Check Complete ===
+  Steps completed: 3/3
+
+  All API endpoints are working correctly!
+  Test document ID: ingest-cli-test-abc123
+```
+
 ---
 
 ## Input Formats

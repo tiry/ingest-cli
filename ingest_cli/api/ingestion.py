@@ -152,12 +152,15 @@ class IngestionClient:
             Dictionary of headers including authorization.
         """
         token = self._auth_client.get_token()
-        return {
+        logger.debug(f"Using token: {token[:50]}...")
+        headers = {
             "Authorization": f"Bearer {token}",
             "Content-Type": "application/json",
             "hxp-environment": self._environment_id,
             "User-Agent": self._user_agent,
         }
+        logger.debug(f"Request headers: {list(headers.keys())}")
+        return headers
 
     def get_presigned_urls(self, count: int = 1) -> list[PresignedUrl]:
         """Request presigned URLs for file uploads.
@@ -213,7 +216,14 @@ class IngestionClient:
             PresignedUrlError: If response indicates error.
         """
         if not response.is_success:
-            logger.error(f"Presigned URL request failed: {response.status_code}")
+            # Log response body for debugging 401/403 errors
+            try:
+                error_body = response.text
+                logger.error(
+                    f"Presigned URL request failed: {response.status_code} - {error_body}"
+                )
+            except Exception:
+                logger.error(f"Presigned URL request failed: {response.status_code}")
             raise PresignedUrlError(
                 message=f"Failed with status {response.status_code}",
                 status_code=response.status_code,
@@ -224,17 +234,26 @@ class IngestionClient:
         except ValueError as e:
             raise PresignedUrlError("Invalid JSON response") from e
 
-        presigned_urls = data.get("presignedUrls", [])
+        # API returns array directly (per OpenAPI spec: PresignedUrlsResponse is array)
+        # Handle both array and legacy object format for compatibility
+        if isinstance(data, list):
+            presigned_urls = data
+        else:
+            presigned_urls = data.get("presignedUrls", [])
 
         if not presigned_urls:
             raise PresignedUrlError("No presigned URLs in response")
 
         result = []
         for url_data in presigned_urls:
+            # API spec uses 'id' but some implementations may use 'objectKey'
+            object_key = url_data.get("id") or url_data.get("objectKey")
+            if not object_key:
+                raise PresignedUrlError("Missing 'id' or 'objectKey' in response")
             result.append(
                 PresignedUrl(
                     url=url_data["url"],
-                    object_key=url_data["objectKey"],
+                    object_key=object_key,
                 )
             )
 
@@ -331,21 +350,19 @@ class IngestionClient:
         url = f"{self._endpoint}{INGESTION_EVENTS_PATH}"
         headers = self._get_headers()
 
-        # Build request body
+        # Build request body - v2 API expects direct array of events (ContentEventsV2)
+        # Each event already contains sourceId per CreateOrUpdateContentEventV2 schema
         content_events = [event.model_dump(by_alias=True, exclude_none=True) for event in events]
-        request_body = {
-            "sourceId": self._source_id,
-            "contentEvents": content_events,
-        }
 
         logger.info(f"Sending {len(events)} event(s) to ingestion API")
+        logger.info(f"Request body: {content_events}")
 
         try:
             with httpx.Client(timeout=self._timeout) as client:
                 response = client.post(
                     url,
                     headers=headers,
-                    json=request_body,
+                    json=content_events,  # Send array directly, not wrapped object
                 )
         except httpx.ConnectError as e:
             logger.error(f"Connection error: {e}")
@@ -376,17 +393,32 @@ class IngestionClient:
         Raises:
             EventSendError: If response indicates error.
         """
+        # Get raw text first for debugging
+        try:
+            raw_text = response.text
+        except Exception:
+            raw_text = None
+
+        # Try to parse JSON
         try:
             data = response.json() if response.content else {}
         except ValueError:
             data = {}
 
         if not response.is_success:
+            # Log full response body for debugging
             logger.error(f"Event send failed: {response.status_code}")
+            if raw_text:
+                logger.error(f"Response body: {raw_text}")
+
+            # Store raw text in error_details for CLI display
+            error_details = data.copy() if data else {}
+            error_details["_raw_response"] = raw_text
+
             raise EventSendError(
                 message=f"Failed with status {response.status_code}",
                 status_code=response.status_code,
-                error_details=data,
+                error_details=error_details,
             )
 
         logger.info(f"Successfully sent {event_count} event(s)")

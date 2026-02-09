@@ -207,6 +207,403 @@ def mappers(ctx: click.Context) -> None:
 
 @cli.command()
 @click.option(
+    "-c",
+    "--config",
+    "config_override",
+    type=click.Path(exists=True),
+    default=None,
+    help="Path to configuration file (default: config.yaml).",
+)
+@click.option(
+    "--auth-only",
+    is_flag=True,
+    default=False,
+    help="Only check authentication (skip upload and ingest).",
+)
+@click.option(
+    "--skip-ingest",
+    is_flag=True,
+    default=False,
+    help="Skip the ingest step (only check auth and upload).",
+)
+@click.pass_context
+def check(
+    ctx: click.Context,
+    config_override: Optional[str],
+    auth_only: bool,
+    skip_ingest: bool,
+) -> None:
+    """Test API connectivity with verbose output.
+
+    This command performs a full connectivity check against the HxAI Ingestion API:
+
+    1. Validates configuration
+    2. Tests authentication and token retrieval
+    3. Uploads a test text file via presigned URL
+    4. Creates a test ingest event
+
+    Use this command to debug setup or code issues.
+
+    Examples:
+
+        # Full connectivity check
+        ingest check -c config.yaml
+
+        # Only check authentication
+        ingest check -c config.yaml --auth-only
+
+        # Check auth and upload, skip ingest
+        ingest check -c config.yaml --skip-ingest
+    """
+    import json
+    import tempfile
+    import time
+    import uuid
+    from datetime import datetime, timezone
+    from pathlib import Path
+
+    from ingest_cli.api.auth import create_auth_client
+    from ingest_cli.api.ingestion import create_ingestion_client
+    from ingest_cli.models.annotations import (
+        CreatedByAnnotation,
+        DateCreatedAnnotation,
+        DateModifiedAnnotation,
+        ModifiedByAnnotation,
+        NameAnnotation,
+        TypeAnnotation,
+    )
+    from ingest_cli.models.event import CreateOrUpdateEvent
+    from ingest_cli.models.file import FileProperty
+
+    # Resolve config path: command option > parent group option > default file
+    config_path = config_override or ctx.obj.get("config")
+    if not config_path:
+        # Check if default config.yaml exists
+        default_config = Path("config.yaml")
+        if default_config.exists():
+            config_path = str(default_config)
+
+    verbose = ctx.obj.get("verbose", False)
+
+    # Force verbose for check command - setup detailed logging
+    if not verbose:
+        setup_logging(True)  # Always verbose for check
+
+    logger = logging.getLogger(__name__)
+
+    click.echo()
+    click.echo(click.style("=== HxAI Ingestion API Connectivity Check ===", fg="cyan", bold=True))
+    click.echo()
+
+    # Track overall status
+    steps_completed = 0
+    total_steps = 1 if auth_only else (2 if skip_ingest else 3)
+
+    # ===== Step 1: Configuration =====
+    step_header = click.style(f"Step 1/{total_steps}:", fg="yellow", bold=True)
+    click.echo(f"{step_header} Loading configuration")
+    click.echo(f"  Config file: {config_path}")
+
+    if not config_path:
+        click.echo(click.style("  ✗ No configuration file specified", fg="red"), err=True)
+        click.echo("  Use --config option or set INGEST_CONFIG environment variable.", err=True)
+        ctx.exit(1)
+
+    try:
+        settings = load_config(config_path)
+        click.echo(click.style("  ✓ Configuration loaded successfully", fg="green"))
+
+        # Show config summary (redacted)
+        click.echo()
+        click.echo("  Configuration Summary:")
+        click.echo(f"    Auth endpoint:    {settings.auth_endpoint}")
+        click.echo(f"    Ingest endpoint:  {settings.ingest_endpoint}")
+        click.echo(f"    Environment ID:   {settings.environment_id}")
+        click.echo(f"    Source ID:        {settings.source_id}")
+        click.echo(f"    Client ID:        {settings.client_id[:8]}...{settings.client_id[-4:]}")
+        click.echo(f"    Client secret:    {'*' * 20}")
+        click.echo()
+
+    except ConfigurationError as e:
+        click.echo(click.style(f"  ✗ Configuration error: {e}", fg="red"), err=True)
+        ctx.exit(1)
+
+    # ===== Step 2: Authentication =====
+    step_header = click.style(f"Step 2/{total_steps}:", fg="yellow", bold=True)
+    click.echo(f"{step_header} Testing authentication")
+
+    click.echo("  Creating auth client...")
+    click.echo(f"    Token endpoint: {settings.auth_endpoint}")
+
+    try:
+        auth_client = create_auth_client(settings)
+    except Exception as e:
+        click.echo(click.style(f"  ✗ Failed to create auth client: {e}", fg="red"), err=True)
+        logger.exception("Auth client creation failed")
+        ctx.exit(1)
+
+    click.echo(click.style("  ✓ Auth client created", fg="green"))
+
+    click.echo("  Fetching OAuth2 token from auth server...")
+    start_time = time.time()
+
+    try:
+        token = auth_client.get_token()
+        elapsed = time.time() - start_time
+
+        click.echo(click.style("  ✓ Valid OAuth2 token received!", fg="green"))
+        click.echo()
+        click.echo("  Token Details:")
+        click.echo(f"    Token prefix:   {token[:20]}...")
+        click.echo(f"    Token length:   {len(token)} characters")
+        click.echo(f"    Request time:   {elapsed:.3f}s")
+
+        # Show token expiry if available
+        if auth_client._token:
+            click.echo(f"    Expires at:     {auth_client._token.expires_at.isoformat()}")
+
+        steps_completed += 1
+        click.echo()
+        click.echo(click.style("  Authentication: SUCCESS", fg="green", bold=True))
+        click.echo()
+
+    except Exception as e:
+        elapsed = time.time() - start_time
+        click.echo(click.style(f"  ✗ Token request failed ({elapsed:.3f}s)", fg="red"), err=True)
+        click.echo()
+        click.echo("  Error Details:")
+        click.echo(f"    Type:    {type(e).__name__}")
+        click.echo(f"    Message: {e}")
+        logger.exception("Token request failed")
+        click.echo()
+        click.echo(click.style("  Authentication: FAILED", fg="red", bold=True))
+        ctx.exit(1)
+
+    if auth_only:
+        click.echo()
+        click.echo(click.style("=== Check Complete (auth only) ===", fg="green", bold=True))
+        click.echo(f"  Steps completed: {steps_completed}/{total_steps}")
+        return
+
+    # ===== Step 3: File Upload =====
+    step_header = click.style(f"Step 3/{total_steps}:", fg="yellow", bold=True)
+    click.echo(f"{step_header} Testing file upload")
+
+    try:
+        click.echo("  Creating ingestion client...")
+        click.echo(f"    API endpoint:    {settings.ingest_endpoint}")
+        click.echo(f"    Environment ID:  {settings.environment_id}")
+        click.echo(f"    Source ID:       {settings.source_id}")
+
+        ingestion_client = create_ingestion_client(settings, auth_client)
+        click.echo(click.style("  ✓ Ingestion client created", fg="green"))
+        click.echo()
+
+        # Create a temporary test file
+        test_id = str(uuid.uuid4())[:8]
+        with tempfile.NamedTemporaryFile(
+            mode="w",
+            suffix=".txt",
+            prefix="ingest-cli-test-",
+            delete=False,
+        ) as tmp:
+            ts = datetime.now(timezone.utc).isoformat()
+            test_content = (
+                f"ingest-cli connectivity test\nTest ID: {test_id}\nTimestamp: {ts}\n"
+            )
+            tmp.write(test_content)
+            tmp_path = Path(tmp.name)
+
+        click.echo(f"  Created test file: {tmp_path}")
+        click.echo(f"    Size: {tmp_path.stat().st_size} bytes")
+        click.echo(f"    Content: {repr(test_content[:50])}...")
+        click.echo()
+
+        # Request presigned URL
+        click.echo("  Requesting presigned URL...")
+        start_time = time.time()
+
+        try:
+            presigned_urls = ingestion_client.get_presigned_urls(count=1)
+            elapsed = time.time() - start_time
+
+            click.echo(click.style("  ✓ Presigned URL received", fg="green"))
+            presigned_url = presigned_urls[0]
+            click.echo(f"    Object key: {presigned_url.object_key}")
+            click.echo(f"    URL prefix: {presigned_url.url[:60]}...")
+            click.echo(f"    Request time: {elapsed:.3f}s")
+            click.echo()
+
+        except Exception as e:
+            elapsed = time.time() - start_time
+            err_msg = f"  ✗ Presigned URL request failed ({elapsed:.3f}s)"
+            click.echo(click.style(err_msg, fg="red"), err=True)
+            click.echo()
+            click.echo("  Error Details:")
+            click.echo(f"    Type:    {type(e).__name__}")
+            click.echo(f"    Message: {e}")
+            logger.exception("Presigned URL request failed")
+            ctx.exit(1)
+
+        # Upload file
+        click.echo("  Uploading test file...")
+        start_time = time.time()
+
+        try:
+            upload_result = ingestion_client.upload_file(presigned_url, tmp_path)
+            elapsed = time.time() - start_time
+
+            click.echo(click.style("  ✓ File uploaded successfully", fg="green"))
+            click.echo(f"    Object key:   {upload_result.object_key}")
+            click.echo(f"    Content type: {upload_result.content_type}")
+            click.echo(f"    Size:         {upload_result.size_bytes} bytes")
+            click.echo(f"    Upload time:  {elapsed:.3f}s")
+            click.echo()
+
+        except Exception as e:
+            elapsed = time.time() - start_time
+            click.echo(click.style(f"  ✗ File upload failed ({elapsed:.3f}s)", fg="red"), err=True)
+            click.echo()
+            click.echo("  Error Details:")
+            click.echo(f"    Type:    {type(e).__name__}")
+            click.echo(f"    Message: {e}")
+            logger.exception("File upload failed")
+            ctx.exit(1)
+
+        finally:
+            # Cleanup temp file
+            try:
+                tmp_path.unlink()
+                click.echo(f"  Cleaned up temp file: {tmp_path}")
+            except Exception:
+                pass
+
+        steps_completed += 1
+
+    except Exception as e:
+        click.echo(click.style(f"  ✗ Upload test failed: {e}", fg="red"), err=True)
+        logger.exception("Upload test failed")
+        ctx.exit(1)
+
+    if skip_ingest:
+        click.echo()
+        click.echo(click.style("=== Check Complete (skip ingest) ===", fg="green", bold=True))
+        click.echo(f"  Steps completed: {steps_completed}/{total_steps}")
+        return
+
+    # ===== Step 4: Send Ingest Event =====
+    step_header = click.style(f"Step 4/{total_steps}:", fg="yellow", bold=True)
+    click.echo(f"{step_header} Testing document ingestion")
+
+    try:
+        # Build a test document event
+        now = datetime.now(timezone.utc)
+        timestamp_ms = int(now.timestamp() * 1000)
+        test_object_id = f"ingest-cli-test-{test_id}"
+
+        click.echo("  Building test document event...")
+        click.echo(f"    Object ID:   {test_object_id}")
+        click.echo(f"    Source ID:   {settings.source_id}")
+        click.echo(f"    Timestamp:   {timestamp_ms}")
+        click.echo()
+
+        # Create event with required annotations and file reference
+        properties: dict[str, any] = {  # type: ignore[valid-type]
+            "name": NameAnnotation(value=f"Test Document {test_id}"),
+            "type": TypeAnnotation(value="TestDocument"),
+            "dateCreated": DateCreatedAnnotation(value=now.strftime("%Y-%m-%dT%H:%M:%S.000Z")),
+            "createdBy": CreatedByAnnotation(value="ingest-cli-check"),
+            "dateModified": DateModifiedAnnotation(value=now.strftime("%Y-%m-%dT%H:%M:%S.000Z")),
+            "modifiedBy": ModifiedByAnnotation(value="ingest-cli-check"),
+            "file": FileProperty.with_upload(
+                upload_id=upload_result.object_key,
+                content_type=upload_result.content_type,
+                size=upload_result.size_bytes,
+                name="ingest-cli-test.txt",
+            ),
+        }
+
+        event = CreateOrUpdateEvent(
+            objectId=test_object_id,
+            sourceId=settings.source_id,
+            sourceTimestamp=timestamp_ms,
+            properties=properties,  # type: ignore[arg-type]
+        )
+
+        # Show event JSON
+        event_data = event.model_dump(by_alias=True, exclude_none=True)
+        click.echo("  Event payload (truncated):")
+        event_json = json.dumps(event_data, indent=2, default=str)
+        # Show first 500 chars
+        if len(event_json) > 500:
+            click.echo(f"    {event_json[:500]}...")
+        else:
+            click.echo(f"    {event_json}")
+        click.echo()
+
+        # Send event
+        click.echo("  Sending ingestion event...")
+        start_time = time.time()
+
+        try:
+            response = ingestion_client.send_events([event])
+            elapsed = time.time() - start_time
+
+            click.echo(click.style("  ✓ Event sent successfully", fg="green"))
+            click.echo(f"    Success:          {response.success}")
+            click.echo(f"    Events processed: {response.events_processed}")
+            click.echo(f"    Request time:     {elapsed:.3f}s")
+
+            if response.errors:
+                click.echo(click.style("    Warnings/Errors:", fg="yellow"))
+                for err in response.errors:
+                    click.echo(f"      - {err}")
+
+            click.echo()
+
+        except Exception as e:
+            elapsed = time.time() - start_time
+            click.echo(click.style(f"  ✗ Event send failed ({elapsed:.3f}s)", fg="red"), err=True)
+            click.echo()
+            click.echo("  Error Details:")
+            click.echo(f"    Type:    {type(e).__name__}")
+            click.echo(f"    Message: {e}")
+
+            # Show full error details if available (EventSendError)
+            if hasattr(e, "error_details") and e.error_details:
+                click.echo()
+                click.echo(click.style("  API Response:", fg="yellow"))
+                error_details = e.error_details
+                # Show raw response if available
+                raw_resp = error_details.pop("_raw_response", None)
+                if raw_resp:
+                    click.echo(f"    Raw: {raw_resp}")
+                # Show parsed details
+                for key, value in error_details.items():
+                    click.echo(f"    {key}: {value}")
+
+            logger.exception("Event send failed")
+            ctx.exit(1)
+
+        steps_completed += 1
+
+    except Exception as e:
+        click.echo(click.style(f"  ✗ Ingest test failed: {e}", fg="red"), err=True)
+        logger.exception("Ingest test failed")
+        ctx.exit(1)
+
+    # ===== Summary =====
+    click.echo()
+    click.echo(click.style("=== Check Complete ===", fg="green", bold=True))
+    click.echo(f"  Steps completed: {steps_completed}/{total_steps}")
+    click.echo()
+    click.echo("  All API endpoints are working correctly!")
+    click.echo(f"  Test document ID: {test_object_id}")
+    click.echo()
+
+
+@cli.command()
+@click.option(
     "-i",
     "--input",
     "input_source",

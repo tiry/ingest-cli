@@ -17,8 +17,8 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-# OAuth2 scope for HxP external integration API
-DEFAULT_SCOPE = "hxp-external-integration-api"
+# Default OAuth2 scopes for HxP external integration API
+DEFAULT_SCOPES: list[str] = []
 
 # Buffer time before actual expiration to refresh token (seconds)
 TOKEN_EXPIRY_BUFFER = 60
@@ -70,7 +70,7 @@ class AuthClient:
         client_id: str,
         client_secret: str,
         auth_endpoint: str,
-        scope: str = DEFAULT_SCOPE,
+        scopes: list[str] | None = None,
         timeout: float = 30.0,
     ) -> None:
         """Initialize the authentication client.
@@ -79,13 +79,13 @@ class AuthClient:
             client_id: OAuth2 client ID.
             client_secret: OAuth2 client secret.
             auth_endpoint: Token endpoint URL.
-            scope: OAuth2 scope (default: hxp-external-integration-api).
+            scopes: List of OAuth2 scopes to request (e.g., ['hxp']).
             timeout: Request timeout in seconds.
         """
         self._client_id = client_id
         self._client_secret = client_secret
         self._auth_endpoint = auth_endpoint
-        self._scope = scope
+        self._scopes = scopes or DEFAULT_SCOPES
         self._timeout = timeout
         self._token: TokenInfo | None = None
 
@@ -119,12 +119,19 @@ class AuthClient:
         """
         logger.info(f"Requesting token from {self._auth_endpoint}")
 
-        data = {
+        # Join scopes with space as per OAuth2 spec
+        scope_str = " ".join(self._scopes) if self._scopes else ""
+
+        data: dict[str, str] = {
             "grant_type": "client_credentials",
             "client_id": self._client_id,
             "client_secret": self._client_secret,
-            "scope": self._scope,
         }
+
+        # Only include scope if provided
+        if scope_str:
+            data["scope"] = scope_str
+            logger.debug(f"Requesting scopes: {scope_str}")
 
         try:
             with httpx.Client(timeout=self._timeout) as client:
@@ -234,4 +241,5 @@ def create_auth_client(settings: IngestSettings) -> AuthClient:
         client_id=settings.client_id,
         client_secret=settings.client_secret,
         auth_endpoint=settings.auth_endpoint,
+        scopes=settings.auth_scope if settings.auth_scope else None,
     )

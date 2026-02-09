@@ -69,6 +69,10 @@ class IngestSettings(BaseSettings):
         default="https://auth.hyland.com/connect/token",
         description="OAuth2 token endpoint",
     )
+    auth_scope: list[str] = Field(
+        default_factory=list,
+        description="OAuth2 scopes to request (e.g., ['hxp'])",
+    )
 
     # Processing settings
     batch_size: int = Field(
