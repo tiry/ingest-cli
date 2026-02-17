@@ -4,9 +4,10 @@ from __future__ import annotations
 
 import logging
 from abc import ABC, abstractmethod
+from collections.abc import Iterator
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Iterator
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -85,7 +86,7 @@ class RawDocument:
         return result
 
     @classmethod
-    def from_data(cls, data: dict[str, Any]) -> "RawDocument":
+    def from_data(cls, data: dict[str, Any]) -> RawDocument:
         """Create a RawDocument from a data dictionary.
 
         Args:

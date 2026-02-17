@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 import sys
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 import click
 
@@ -34,7 +34,7 @@ def setup_logging(verbose: bool) -> None:
     )
 
 
-def display_results(result: "PipelineResult", dry_run: bool = False) -> None:
+def display_results(result: PipelineResult, dry_run: bool = False) -> None:
     """Display pipeline execution results.
 
     Args:
@@ -91,7 +91,7 @@ def display_results(result: "PipelineResult", dry_run: bool = False) -> None:
     help="Path to configuration file.",
 )
 @click.pass_context
-def cli(ctx: click.Context, verbose: bool, config: Optional[str]) -> None:
+def cli(ctx: click.Context, verbose: bool, config: str | None) -> None:
     """Ingest CLI - Import documents to HxAI Ingestion API.
 
     A command-line tool for importing documents (files + metadata) from a local
@@ -129,7 +129,7 @@ def version(ctx: click.Context) -> None:
     help="Display configuration values (secrets redacted).",
 )
 @click.pass_context
-def validate(ctx: click.Context, config: Optional[str], show_config: bool) -> None:
+def validate(ctx: click.Context, config: str | None, show_config: bool) -> None:
     """Validate configuration file."""
     config_path = config or ctx.obj.get("config")
     if not config_path:
@@ -229,7 +229,7 @@ def mappers(ctx: click.Context) -> None:
 @click.pass_context
 def check(
     ctx: click.Context,
-    config_override: Optional[str],
+    config_override: str | None,
     auth_only: bool,
     skip_ingest: bool,
 ) -> None:
@@ -408,9 +408,7 @@ def check(
             delete=False,
         ) as tmp:
             ts = datetime.now(timezone.utc).isoformat()
-            test_content = (
-                f"ingest-cli connectivity test\nTest ID: {test_id}\nTimestamp: {ts}\n"
-            )
+            test_content = f"ingest-cli connectivity test\nTest ID: {test_id}\nTimestamp: {ts}\n"
             tmp.write(test_content)
             tmp_path = Path(tmp.name)
 
@@ -527,7 +525,7 @@ def check(
             objectId=test_object_id,
             sourceId=settings.source_id,
             sourceTimestamp=timestamp_ms,
-            properties=properties,  # type: ignore[arg-type]
+            properties=properties,
         )
 
         # Show event JSON
@@ -659,10 +657,10 @@ def run(
     ctx: click.Context,
     input_source: str,
     reader_name: str,
-    mapper_name: Optional[str],
-    batch_size: Optional[int],
+    mapper_name: str | None,
+    batch_size: int | None,
     offset: int,
-    limit: Optional[int],
+    limit: int | None,
     dry_run: bool,
 ) -> None:
     """Execute the document ingestion pipeline.

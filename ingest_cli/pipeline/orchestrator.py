@@ -8,9 +8,10 @@ from __future__ import annotations
 
 import logging
 import time
+from collections.abc import Iterator
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, Iterator
+from typing import TYPE_CHECKING, Any
 
 from ingest_cli.mappers import BaseMapper, IdentityMapper
 from ingest_cli.models import CreateOrUpdateEvent, Document

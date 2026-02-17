@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Iterator
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import TYPE_CHECKING, Iterator
+from typing import TYPE_CHECKING
 from urllib.parse import urlparse
 
 if TYPE_CHECKING:
@@ -66,7 +67,7 @@ class PipelineValidator:
         """
         self.sample_size = sample_size
 
-    def validate_config(self, config: "IngestSettings") -> ValidationResult:
+    def validate_config(self, config: IngestSettings) -> ValidationResult:
         """Validate configuration settings.
 
         Args:
@@ -136,7 +137,7 @@ class PipelineValidator:
 
         # Check readability
         try:
-            with open(input_path, "r", encoding="utf-8") as f:
+            with open(input_path, encoding="utf-8") as f:
                 f.read(1)  # Try to read first byte
         except PermissionError:
             result.add_error(f"Permission denied reading: {input_path}")
@@ -274,7 +275,7 @@ class PipelineValidator:
 
     def validate_all(
         self,
-        config: "IngestSettings",
+        config: IngestSettings,
         input_path: Path,
         reader: BaseReader,
         mapper: BaseMapper,

@@ -219,9 +219,7 @@ class IngestionClient:
             # Log response body for debugging 401/403 errors
             try:
                 error_body = response.text
-                logger.error(
-                    f"Presigned URL request failed: {response.status_code} - {error_body}"
-                )
+                logger.error(f"Presigned URL request failed: {response.status_code} - {error_body}")
             except Exception:
                 logger.error(f"Presigned URL request failed: {response.status_code}")
             raise PresignedUrlError(
