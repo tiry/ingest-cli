@@ -7,6 +7,11 @@
 
 A Python command-line tool for importing documents (files + metadata) from a local filesystem to the HxAI Ingestion REST API.
 
+
+## Architecture
+
+<img src="doc/ingest-cli.png" width="800px"></img>
+
 ## Features
 
 - **Pluggable Readers**: Extensible architecture for reading documents from various sources (CSV, JSON, etc.)
