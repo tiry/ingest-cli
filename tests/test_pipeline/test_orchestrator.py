@@ -196,11 +196,13 @@ class TestIngestionPipelineInit:
             reader=reader,
             source="test.csv",
             ingestion_client=None,
+            source_id="test-source",
         )
 
         assert pipeline._reader is reader
         assert pipeline._source == "test.csv"
         assert pipeline._client is None
+        assert pipeline._source_id == "test-source"
         assert isinstance(pipeline._mapper, IdentityMapper)
         assert pipeline.config.batch_size == 50
 
@@ -212,6 +214,7 @@ class TestIngestionPipelineInit:
             reader=reader,
             source="test.csv",
             ingestion_client=None,
+            source_id="test-source",
             mapper=mapper,
         )
         assert pipeline._mapper is mapper
@@ -224,6 +227,7 @@ class TestIngestionPipelineInit:
             reader=reader,
             source="test.csv",
             ingestion_client=None,
+            source_id="test-source",
             config=config,
         )
         assert pipeline.config is config
@@ -245,6 +249,7 @@ class TestPipelineDryRun:
             reader=reader,
             source="test.csv",
             ingestion_client=mock_client,
+            source_id="test-source",
             config=config,
         )
 
@@ -269,6 +274,7 @@ class TestPipelineDryRun:
             reader=reader,
             source="test.csv",
             ingestion_client=None,
+            source_id="test-source",
             config=config,
         )
 
@@ -291,6 +297,7 @@ class TestPipelineBatching:
             reader=reader,
             source="test.csv",
             ingestion_client=None,
+            source_id="test-source",
             config=config,
         )
 
@@ -307,6 +314,7 @@ class TestPipelineBatching:
             reader=reader,
             source="test.csv",
             ingestion_client=None,
+            source_id="test-source",
             config=config,
         )
 
@@ -327,6 +335,7 @@ class TestPipelineOffset:
             reader=reader,
             source="test.csv",
             ingestion_client=None,
+            source_id="test-source",
             config=config,
         )
 
@@ -344,6 +353,7 @@ class TestPipelineOffset:
             reader=reader,
             source="test.csv",
             ingestion_client=None,
+            source_id="test-source",
             config=config,
         )
 
@@ -364,6 +374,7 @@ class TestPipelineLimit:
             reader=reader,
             source="test.csv",
             ingestion_client=None,
+            source_id="test-source",
             config=config,
         )
 
@@ -380,6 +391,7 @@ class TestPipelineLimit:
             reader=reader,
             source="test.csv",
             ingestion_client=None,
+            source_id="test-source",
             config=config,
         )
 
@@ -402,6 +414,7 @@ class TestPipelineErrorHandling:
             reader=reader,
             source="test.csv",
             ingestion_client=None,
+            source_id="test-source",
             mapper=mapper,
             config=config,
         )
@@ -422,6 +435,7 @@ class TestPipelineErrorHandling:
             reader=reader,
             source="test.csv",
             ingestion_client=None,
+            source_id="test-source",
             mapper=mapper,
             config=config,
         )
@@ -450,6 +464,7 @@ class TestPipelineWithClient:
             reader=reader,
             source="test.csv",
             ingestion_client=mock_client,
+            source_id="test-source",
             config=config,
         )
 
@@ -471,6 +486,7 @@ class TestPipelineWithClient:
             reader=reader,
             source="test.csv",
             ingestion_client=mock_client,
+            source_id="test-source",
             config=config,
         )
 
@@ -493,6 +509,7 @@ class TestPipelineTiming:
             reader=reader,
             source="test.csv",
             ingestion_client=None,
+            source_id="test-source",
             config=config,
         )
 

@@ -283,7 +283,7 @@ class IngestionPipeline:
                 result.processed += 1
 
             except Exception as e:
-                logger.error(f"Error mapping document {doc_index}: {e}", e)
+                logger.error(f"Error mapping document {doc_index}: {e}")
                 result.failed += 1
                 result.errors.append(
                     PipelineError(
@@ -394,7 +394,7 @@ class IngestionPipeline:
             try:
                 if document.file_path:
                     upload_result = self._client.upload_file(presigned_url, document.file_path)
-                    
+
                     # Update the event's file property with the uploaded key
                     if "file" in event.properties:
                         file_prop = event.properties["file"]
@@ -403,7 +403,7 @@ class IngestionPipeline:
                             file_prop.upload_id = upload_result.object_key
                         elif isinstance(file_prop, dict):
                             file_prop["upload_id"] = upload_result.object_key
-                    
+
                     logger.debug(f"Uploaded {document.file_path} -> {upload_result.object_key}")
                     uploaded += 1
             except Exception as e:

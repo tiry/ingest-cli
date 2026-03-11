@@ -103,7 +103,7 @@ class CSVReader(BaseReader):
                     continue
 
                 file_path = Path(file_path_str)
-                
+
                 # If path is relative, resolve it relative to CSV file's directory
                 if not file_path.is_absolute():
                     file_path = (source_path.parent / file_path).resolve()
