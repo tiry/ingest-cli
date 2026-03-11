@@ -165,3 +165,13 @@ def register_mapper(
         name: Override name
     """
     _registry.register(mapper_class, name)
+
+
+def get_all_mapper_info() -> list[dict[str, Any]]:
+    """Get information about all registered mappers.
+
+    Returns:
+        List of dicts with mapper info (name, class, description)
+    """
+    mapper_names = list_mappers()
+    return [get_mapper_info(name) for name in mapper_names]

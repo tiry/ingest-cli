@@ -1,0 +1,4 @@
+file_path,object_id,title,doc_type,created_by,modified_by,category,author
+documents/report_q1_2024.txt,DOC-2024-Q1-001,Q1 2024 Quarterly Report,Report,john.doe@company.com,jane.smith@company.com,Reports,Finance Team
+documents/user_guide_v2.txt,DOC-GUIDE-V2,Product User Guide v2.0,Documentation,tech.writer@company.com,tech.writer@company.com,Documentation,Technical Writing
+documents/technical_spec.txt,DOC-SPEC-ARCH-001,System Architecture Specification,Technical,architect@company.com,lead.engineer@company.com,Technical,Engineering Team

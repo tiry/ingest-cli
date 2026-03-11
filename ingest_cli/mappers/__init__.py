@@ -22,6 +22,7 @@ from .field_mapper import FieldMapper
 from .identity import IdentityMapper
 from .registry import (
     MapperNotFoundError,
+    get_all_mapper_info,
     get_mapper,
     get_mapper_info,
     list_mappers,
@@ -40,6 +41,7 @@ __all__ = [
     "get_mapper",
     "list_mappers",
     "get_mapper_info",
+    "get_all_mapper_info",
     "register_mapper",
     "MapperNotFoundError",
     # Factory

@@ -77,6 +77,6 @@ class IdentityMapper(BaseMapper):
             date_modified=date_modified,
             modified_by=data["modified_by"],
             file_path=file_path,
-            file_content_type=data.get("file_content_type"),
+            file_content_type=data.get("file_content_type", "application/octet-stream"),
             properties=data.get("properties", {}),
         )

@@ -143,6 +143,7 @@ class IngestionPipeline:
         reader: BaseReader,
         source: str,
         ingestion_client: IngestionClient | None,
+        source_id: str,
         mapper: BaseMapper | None = None,
         config: PipelineConfig | None = None,
     ) -> None:
@@ -152,12 +153,14 @@ class IngestionPipeline:
             reader: Reader to get documents from.
             source: Source path for the reader.
             ingestion_client: Client for API calls (None for dry-run).
+            source_id: Source identifier from configuration.
             mapper: Mapper to transform documents (default: IdentityMapper).
             config: Pipeline configuration.
         """
         self._reader = reader
         self._source = source
         self._client = ingestion_client
+        self._source_id = source_id
         self._mapper = mapper or IdentityMapper()
         self._config = config or PipelineConfig()
 
@@ -280,7 +283,7 @@ class IngestionPipeline:
                 result.processed += 1
 
             except Exception as e:
-                logger.error(f"Error mapping document {doc_index}: {e}")
+                logger.error(f"Error mapping document {doc_index}: {e}", e)
                 result.failed += 1
                 result.errors.append(
                     PipelineError(
@@ -353,7 +356,7 @@ class IngestionPipeline:
         # Build the event with required fields from Document
         return CreateOrUpdateEvent(
             objectId=document.object_id,
-            sourceId="ingest-cli",  # Default source
+            sourceId=self._source_id,
             sourceTimestamp=timestamp_ms,
             properties=document.properties or {},
         )
@@ -385,14 +388,23 @@ class IngestionPipeline:
         logger.info(f"Requesting {len(docs_with_files)} presigned URLs")
         presigned_urls = self._client.get_presigned_urls(len(docs_with_files))
 
-        # Upload each file
+        # Upload each file and update event with uploaded key
         uploaded = 0
         for (event, document), presigned_url in zip(docs_with_files, presigned_urls, strict=False):
             try:
                 if document.file_path:
-                    result = self._client.upload_file(presigned_url, document.file_path)
-                    # Store uploaded key on event
-                    logger.debug(f"Uploaded {document.file_path} -> {result.object_key}")
+                    upload_result = self._client.upload_file(presigned_url, document.file_path)
+                    
+                    # Update the event's file property with the uploaded key
+                    if "file" in event.properties:
+                        file_prop = event.properties["file"]
+                        # Update the file property to reference the uploaded S3 object
+                        if hasattr(file_prop, "upload_id"):
+                            file_prop.upload_id = upload_result.object_key
+                        elif isinstance(file_prop, dict):
+                            file_prop["upload_id"] = upload_result.object_key
+                    
+                    logger.debug(f"Uploaded {document.file_path} -> {upload_result.object_key}")
                     uploaded += 1
             except Exception as e:
                 logger.error(f"Error uploading {document.file_path}: {e}")
@@ -438,6 +450,7 @@ def create_pipeline(
         reader=reader,
         source=source,
         ingestion_client=ingestion_client,
+        source_id=settings.source_id,
         mapper=mapper,
         config=config,
     )

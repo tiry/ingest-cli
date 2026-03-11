@@ -186,19 +186,19 @@ def readers(ctx: click.Context) -> None:
 @click.pass_context
 def mappers(ctx: click.Context) -> None:
     """List available mappers."""
-    from ingest_cli.mappers import get_mapper_info
+    from ingest_cli.mappers import get_all_mapper_info
 
-    mapper_info = get_mapper_info()  # type: ignore[call-arg]
+    mapper_info = get_all_mapper_info()
 
     click.echo("\nAvailable mappers:")
     click.echo()
 
     # Find max name length for alignment
-    max_name_len = max(len(m["name"]) for m in mapper_info) if mapper_info else 10  # type: ignore[index]
+    max_name_len = max(len(m["name"]) for m in mapper_info) if mapper_info else 10
 
     for mapper in mapper_info:
-        name = mapper["name"].ljust(max_name_len)  # type: ignore[index]
-        desc = mapper["description"]  # type: ignore[index]
+        name = mapper["name"].ljust(max_name_len)
+        desc = mapper["description"]
         click.echo(f"  {click.style(name, fg='cyan')}  {desc}")
 
     click.echo()
@@ -682,7 +682,10 @@ def run(
         # Use custom mapper
         ingest run -c config.yaml -i documents.csv --mapper field-mapper
     """
-    from ingest_cli.api import AuthClient, IngestionClient
+    from pathlib import Path
+
+    from ingest_cli.api.auth import create_auth_client
+    from ingest_cli.api.ingestion import create_ingestion_client
     from ingest_cli.mappers import create_mapper
     from ingest_cli.pipeline import create_pipeline
     from ingest_cli.readers import create_reader
@@ -690,11 +693,16 @@ def run(
     config_path = ctx.obj.get("config")
     logger = logging.getLogger(__name__)
 
-    # Validate config path
+    # Check for default config.yaml if no config specified
     if not config_path:
-        click.echo("Error: No configuration file specified.", err=True)
-        click.echo("Use --config option or set INGEST_CONFIG environment variable.", err=True)
-        ctx.exit(1)
+        default_config = Path("config.yaml")
+        if default_config.exists():
+            config_path = str(default_config)
+        else:
+            click.echo("Error: No configuration file specified.", err=True)
+            click.echo("Use --config option or set INGEST_CONFIG environment variable.", err=True)
+            click.echo("Or create a config.yaml file in the current directory.", err=True)
+            ctx.exit(1)
 
     # Display header
     if dry_run:
@@ -746,8 +754,8 @@ def run(
     if not dry_run:
         try:
             click.echo("Creating API clients...")
-            auth_client = AuthClient(settings)  # type: ignore[call-arg, arg-type]
-            ingestion_client = IngestionClient(settings, auth_client)  # type: ignore[call-arg, arg-type]
+            auth_client = create_auth_client(settings)
+            ingestion_client = create_ingestion_client(settings, auth_client)
             click.echo(click.style("  ✓ API clients created", fg="green"))
         except Exception as e:
             click.echo(click.style(f"  ✗ API client error: {e}", fg="red"), err=True)

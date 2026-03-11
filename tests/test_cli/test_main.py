@@ -39,6 +39,14 @@ class TestCli:
         assert "Available readers:" in result.output
         assert "csv" in result.output
 
+    def test_mappers_command(self) -> None:
+        """Test the mappers command lists available mappers."""
+        runner = CliRunner()
+        result = runner.invoke(cli, ["mappers"])
+        assert result.exit_code == 0
+        assert "Available mappers:" in result.output
+        assert "identity" in result.output
+
     def test_validate_command_no_config(self) -> None:
         """Test validate command without config file shows error."""
         runner = CliRunner()
